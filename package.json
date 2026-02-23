@@ -10,7 +10,8 @@
     "indexer:x402": "tsx src/indexer/x402.ts",
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "mcp": "tsx src/mcp/server.ts"
+    "mcp": "tsx src/mcp/server.ts",
+    "score": "tsx src/scoring/compute.ts"
   },
   "repository": {
     "type": "git",

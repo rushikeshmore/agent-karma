@@ -66,6 +66,9 @@ server.registerTool(
           source: w.source,
           chain: w.chain,
           erc8004_id: w.erc8004_id,
+          trust_score: w.trust_score,
+          score_breakdown: w.score_breakdown,
+          scored_at: w.scored_at,
           tx_count: Number(w.tx_count ?? 0),
           transaction_count: Number(txCount[0].count),
           feedback_count: Number(feedbackCount[0].count),
@@ -143,6 +146,8 @@ server.registerTool(
           source: wallet[0].source,
           erc8004_registered: wallet[0].erc8004_id !== null,
           erc8004_id: wallet[0].erc8004_id,
+          trust_score: wallet[0].trust_score,
+          score_breakdown: wallet[0].score_breakdown,
           trust_signals: {
             total_transactions: Number(stats.total_txns),
             unique_counterparties: Number(stats.unique_counterparties),
@@ -167,7 +172,66 @@ server.registerTool(
   }
 )
 
-// --- Tool 3: list_wallets ---
+// --- Tool 3: get_trust_score ---
+server.registerTool(
+  'get_trust_score',
+  {
+    description:
+      'Get the trust score (0-100) for an AI agent wallet. Returns a weighted score based on: repeat business (32%), transaction activity (20%), counterparty diversity (18%), on-chain feedback (15%), account age (9%), and recency (6%). ERC-8004 registered agents get a +5 bonus. Use this to quickly assess if a wallet is trustworthy before transacting.',
+    inputSchema: {
+      address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/)
+        .describe('EVM wallet address (0x...)'),
+    },
+  },
+  async ({ address }) => {
+    const addr = address.toLowerCase()
+    const wallet = await sql`
+      SELECT address, trust_score, score_breakdown, scored_at, source, tx_count, erc8004_id
+      FROM wallets WHERE address = ${addr}
+    `
+
+    if (wallet.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            found: false,
+            address: addr,
+            trust_score: null,
+            message: 'Wallet not found. No AI agent activity detected for this address.',
+          }, null, 2),
+        }],
+      }
+    }
+
+    const w = wallet[0]
+    const tierLabel =
+      w.trust_score >= 80 ? 'HIGH' :
+      w.trust_score >= 50 ? 'MEDIUM' :
+      w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: JSON.stringify({
+          found: true,
+          address: w.address,
+          trust_score: w.trust_score,
+          tier: tierLabel,
+          breakdown: w.score_breakdown,
+          scored_at: w.scored_at,
+          source: w.source,
+          tx_count: Number(w.tx_count ?? 0),
+          erc8004_registered: w.erc8004_id !== null,
+        }, null, 2),
+      }],
+    }
+  }
+)
+
+// --- Tool 4: list_wallets ---
 server.registerTool(
   'list_wallets',
   {
@@ -230,7 +294,7 @@ server.registerTool(
   }
 )
 
-// --- Tool 4: agentkarma_stats ---
+// --- Tool 5: agentkarma_stats ---
 server.registerTool(
   'agentkarma_stats',
   {
