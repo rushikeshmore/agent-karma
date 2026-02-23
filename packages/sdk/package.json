@@ -1,0 +1,44 @@
+{
+  "name": "agentkarma",
+  "version": "0.1.0",
+  "description": "Trust scores for AI agent wallets — one-line credit check before transacting",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "agent",
+    "wallet",
+    "trust",
+    "score",
+    "blockchain",
+    "erc-8004",
+    "x402",
+    "ai-agent",
+    "reputation"
+  ],
+  "author": "Rushikesh More",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rushikeshmore/agent-karma.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/rushikeshmore/agent-karma",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
