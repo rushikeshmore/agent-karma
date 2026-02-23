@@ -1,0 +1,44 @@
+{
+  "name": "agent-karma",
+  "version": "0.1.0",
+  "description": "Credit bureau for AI agent wallets — trust scores from public blockchain data",
+  "type": "module",
+  "scripts": {
+    "test:rpc": "tsx scripts/test-rpc.ts",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "indexer:erc8004": "tsx src/indexer/erc8004.ts",
+    "indexer:x402": "tsx src/indexer/x402.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rushikeshmore/agent-karma.git"
+  },
+  "keywords": [
+    "agent",
+    "wallet",
+    "trust",
+    "blockchain",
+    "erc-8004",
+    "x402"
+  ],
+  "author": "Rushikesh More",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rushikeshmore/agent-karma/issues"
+  },
+  "homepage": "https://github.com/rushikeshmore/agent-karma#readme",
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "dotenv": "^17.3.1",
+    "hono": "^4.12.1",
+    "postgres": "^3.4.8",
+    "viem": "^2.46.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
