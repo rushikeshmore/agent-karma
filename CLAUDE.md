@@ -43,7 +43,6 @@ Bulk UPDATE via CTE+VALUES (500 wallets/batch, 6200 in 7.4s).
 
 ## Packages
 - `packages/sdk/` — npm package `agentkarma` (zero deps, TypeScript)
-- `packages/dashboard/` — Next.js 16 + Tailwind (dark theme, Vercel-ready)
 
 ## DB State
 - 6,200 wallets (100% scored), 1,992 transactions, 676 feedback, 13 MB / 500 MB
