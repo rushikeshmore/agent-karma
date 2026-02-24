@@ -66,23 +66,23 @@ app.get('/wallets', async (c) => {
   const wallets = source
     ? sort === 'trust_score'
       ? await sql`
-          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at
+          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
           FROM wallets WHERE source = ${source}
           ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
         `
       : await sql`
-          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at
+          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
           FROM wallets WHERE source = ${source}
           ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}
         `
     : sort === 'trust_score'
       ? await sql`
-          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at
+          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
           FROM wallets
           ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
         `
       : await sql`
-          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at
+          SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
           FROM wallets
           ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}
         `
@@ -100,14 +100,14 @@ app.get('/leaderboard', async (c) => {
 
   const wallets = source
     ? await sql`
-        SELECT address, source, trust_score, score_breakdown, tx_count, first_seen_at, last_seen_at
+        SELECT address, source, trust_score, score_breakdown, tx_count, first_seen_at, last_seen_at, role
         FROM wallets
         WHERE trust_score IS NOT NULL AND source = ${source}
         ORDER BY trust_score DESC, tx_count DESC
         LIMIT ${limit}
       `
     : await sql`
-        SELECT address, source, trust_score, score_breakdown, tx_count, first_seen_at, last_seen_at
+        SELECT address, source, trust_score, score_breakdown, tx_count, first_seen_at, last_seen_at, role
         FROM wallets
         WHERE trust_score IS NOT NULL
         ORDER BY trust_score DESC, tx_count DESC
@@ -157,7 +157,7 @@ app.get('/score/:address', async (c) => {
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
 
   const wallet = await sql`
-    SELECT address, source, trust_score, score_breakdown, scored_at, tx_count
+    SELECT address, source, trust_score, score_breakdown, scored_at, tx_count, role
     FROM wallets WHERE address = ${address}
   `
   if (wallet.length === 0) return c.json({ error: 'Wallet not found' }, 404)
@@ -168,6 +168,7 @@ app.get('/score/:address', async (c) => {
       address: w.address,
       trust_score: null,
       tier: null,
+      role: w.role ?? null,
       message: 'Score not yet computed. Run: npm run score',
     })
   }
@@ -185,6 +186,7 @@ app.get('/score/:address', async (c) => {
     scored_at: w.scored_at,
     source: w.source,
     tx_count: w.tx_count,
+    role: w.role ?? null,
   })
 })
 
