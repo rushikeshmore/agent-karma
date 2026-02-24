@@ -64,14 +64,14 @@ Ethereum mainnet                    Base L2
 
 Six weighted signals, computed per wallet:
 
-| Signal | Weight | What It Measures |
-|--------|--------|------------------|
-| **Loyalty** | 32% | Repeat business with counterparties. Sybil-resistant — caps wallets with suspicious concentration (>20 txns to <3 counterparties). |
-| **Activity** | 20% | Transaction volume on log₁₀ scale. 10 txns = 50, 100 txns = 100. |
-| **Diversity** | 18% | Unique counterparties on log₁₀ scale. Rewards broad interaction. |
-| **Feedback** | 15% | On-chain reputation from ERC-8004. Confidence-weighted with neutral baseline when no feedback exists. |
-| **Age** | 9% | Days since first on-chain activity. Full score at 180+ days. |
-| **Recency** | 6% | Days since last activity. 100 within 7 days, linear decay to 0 at 90 days. |
+| Signal        | Weight | What It Measures                                                                                                                   |
+| ------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Loyalty**   | 32%    | Repeat business with counterparties. Sybil-resistant — caps wallets with suspicious concentration (>20 txns to <3 counterparties). |
+| **Activity**  | 20%    | Transaction volume on log₁₀ scale. 10 txns = 50, 100 txns = 100.                                                                   |
+| **Diversity** | 18%    | Unique counterparties on log₁₀ scale. Rewards broad interaction.                                                                   |
+| **Feedback**  | 15%    | On-chain reputation from ERC-8004. Confidence-weighted with neutral baseline when no feedback exists.                              |
+| **Age**       | 9%     | Days since first on-chain activity. Full score at 180+ days.                                                                       |
+| **Recency**   | 6%     | Days since last activity. 100 within 7 days, linear decay to 0 at 90 days.                                                         |
 
 +5 bonus for ERC-8004 registered agents. Final score clamped to 0–100.
 
@@ -136,15 +136,15 @@ curl https://agent-karma.rushikeshmore271.workers.dev/stats
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/score/:address` | Trust score (0–100) with tier, breakdown, and role |
-| `GET` | `/wallet/:address` | Full wallet details + transaction/feedback stats |
-| `GET` | `/wallets` | List wallets (paginated, filterable by source, sortable) |
-| `GET` | `/leaderboard` | Top wallets ranked by trust score |
-| `GET` | `/wallet/:address/transactions` | Transaction history |
-| `GET` | `/wallet/:address/feedback` | Feedback history |
-| `GET` | `/stats` | Database stats, score distribution, indexer state |
+| Method | Endpoint                        | Description                                              |
+| ------ | ------------------------------- | -------------------------------------------------------- |
+| `GET`  | `/score/:address`               | Trust score (0–100) with tier, breakdown, and role       |
+| `GET`  | `/wallet/:address`              | Full wallet details + transaction/feedback stats         |
+| `GET`  | `/wallets`                      | List wallets (paginated, filterable by source, sortable) |
+| `GET`  | `/leaderboard`                  | Top wallets ranked by trust score                        |
+| `GET`  | `/wallet/:address/transactions` | Transaction history                                      |
+| `GET`  | `/wallet/:address/feedback`     | Feedback history                                         |
+| `GET`  | `/stats`                        | Database stats, score distribution, indexer state        |
 
 ### MCP Server
 
@@ -154,13 +154,13 @@ For AI agents that need to query trust data directly:
 npm run mcp
 ```
 
-| Tool | Description |
-|------|-------------|
-| `get_trust_score` | Quick score check — trust_score, tier, breakdown |
-| `lookup_wallet` | Full wallet info — source, agent ID, scores, stats |
+| Tool                       | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `get_trust_score`          | Quick score check — trust_score, tier, breakdown             |
+| `lookup_wallet`            | Full wallet info — source, agent ID, scores, stats           |
 | `get_wallet_trust_signals` | Deep signals — counterparties, volume, feedback, recent txns |
-| `list_wallets` | Browse indexed wallets by source |
-| `agentkarma_stats` | Database statistics |
+| `list_wallets`             | Browse indexed wallets by source                             |
+| `agentkarma_stats`         | Database statistics                                          |
 
 Add to Claude Desktop (`claude_desktop_config.json`):
 
@@ -245,18 +245,12 @@ agent-karma/
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|-----------|
-| Language | TypeScript (ESM) |
-| Blockchain | [viem](https://viem.sh/) — Ethereum + Base L2 reads |
-| Database | [postgres.js](https://github.com/porsager/postgres) + [Neon](https://neon.tech/) |
-| API | [Hono](https://hono.dev/) — portable to Cloudflare Workers |
-| MCP | [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
-| RPC | [Alchemy](https://www.alchemy.com/) — Ethereum + Base |
-| Deployment | Cloudflare Workers |
-
-Designed to run entirely on free tiers. $0/month infrastructure cost.
-
-## License
-
-MIT
+| Component  | Technology                                                                          |
+| ---------- | ----------------------------------------------------------------------------------- |
+| Language   | TypeScript (ESM)                                                                    |
+| Blockchain | [viem](https://viem.sh/) — Ethereum + Base L2 reads                                 |
+| Database   | [postgres.js](https://github.com/porsager/postgres) + [Neon](https://neon.tech/)    |
+| API        | [Hono](https://hono.dev/) — portable to Cloudflare Workers                          |
+| MCP        | [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
+| RPC        | [Alchemy](https://www.alchemy.com/) — Ethereum + Base                               |
+| Deployment | Cloudflare Workers                                                                  |
