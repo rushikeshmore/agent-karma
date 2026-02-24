@@ -239,10 +239,8 @@ agent-karma/
 │   ├── api/           # Hono REST API (8 endpoints)
 │   ├── mcp/           # MCP server (5 tools)
 │   └── worker.ts      # Cloudflare Workers entry point
-├── packages/
-│   └── sdk/           # npm package: agentkarma
-├── .env.example       # Environment template
-└── DEVLOG.md          # Development log
+├── sdk/               # npm package: agentkarma
+└── .env.example       # Environment template
 ```
 
 ## Tech Stack

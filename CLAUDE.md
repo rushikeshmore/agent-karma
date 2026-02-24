@@ -42,7 +42,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 Bulk UPDATE via CTE+VALUES (500 wallets/batch, 6200 in 7.4s).
 
 ## Packages
-- `packages/sdk/` — npm package `agentkarma` (zero deps, TypeScript)
+- `sdk/` — npm package `agentkarma` (zero deps, TypeScript)
 
 ## DB State
 - 6,200 wallets (100% scored), 1,992 transactions, 676 feedback, 13 MB / 500 MB
