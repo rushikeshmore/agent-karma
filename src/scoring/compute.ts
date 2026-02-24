@@ -345,16 +345,18 @@ async function main() {
   }
   console.log(`Computed ${results.length} scores in memory`)
 
-  // Insert score history before updating wallets
+  // Insert score history before updating wallets (batched)
   console.log('Saving score history...')
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
-    const batch = results.slice(i, i + BATCH_SIZE)
-    for (const b of batch) {
-      await sql`
-        INSERT INTO score_history (address, trust_score, score_breakdown)
-        VALUES (${b.address}, ${b.score}, ${b.breakdown}::jsonb)
-      `
-    }
+    const batch = results.slice(i, i + BATCH_SIZE).map(b => ({
+      address: b.address,
+      trust_score: b.score,
+      score_breakdown: b.breakdown,
+    }))
+    await sql`
+      INSERT INTO score_history ${sql(batch, 'address', 'trust_score', 'score_breakdown')}
+    `
+    console.log(`  Saved ${Math.min(i + BATCH_SIZE, results.length)}/${results.length}`)
   }
   console.log(`  ${results.length} score snapshots saved`)
 
