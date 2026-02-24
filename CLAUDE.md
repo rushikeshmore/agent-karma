@@ -29,8 +29,21 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - ReputationRegistry: `0x8004BAa1...` (Ethereum, block 24339925)
 - USDC on Base: `0x833589fC...`
 
-## MCP Tools
-- `lookup_wallet` — wallet info + stats
+## MCP Tools (5)
+- `lookup_wallet` — wallet info + trust score + stats
 - `get_wallet_trust_signals` — trust indicators (tx history, counterparties, feedback)
+- `get_trust_score` — quick 0-100 score check with tier + breakdown
 - `list_wallets` — browse indexed wallets by source
 - `agentkarma_stats` — database statistics
+
+## Scoring Algorithm
+6 weighted signals: loyalty (32%), activity (20%), diversity (18%), feedback (15%), age (9%), recency (6%)
++5 bonus for ERC-8004 registered agents. Sybil resistance on loyalty signal.
+Bulk UPDATE via CTE+VALUES (500 wallets/batch, 6200 in 7.4s).
+
+## Packages
+- `packages/sdk/` — npm package `agentkarma` (zero deps, TypeScript)
+- `packages/dashboard/` — Next.js 16 + Tailwind (dark theme, Vercel-ready)
+
+## DB State
+- 6,200 wallets (100% scored), 1,992 transactions, 676 feedback, 13 MB / 500 MB

@@ -74,6 +74,9 @@ web_modules/
 .cache
 .parcel-cache
 
+# Website (deployed separately, not part of open source repo)
+packages/dashboard/
+
 # Next.js build output
 .next
 out

@@ -17,6 +17,28 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', cors())
 
+app.onError((err, c) => {
+  console.error(`[API Error] ${c.req.method} ${c.req.path}:`, err.message)
+  return c.json({ error: 'Internal server error' }, 500)
+})
+
+const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
+
+function validateAddress(address: string): string | null {
+  return ETH_ADDRESS_RE.test(address) ? address.toLowerCase() : null
+}
+
+function safeInt(value: string | undefined, fallback: number): number {
+  const n = Number(value)
+  return Number.isNaN(n) || n < 0 ? fallback : Math.floor(n)
+}
+
+const VALID_SOURCES = new Set(['erc8004', 'x402', 'both'])
+
+function validateSource(source: string | undefined): string | undefined {
+  return source && VALID_SOURCES.has(source) ? source : undefined
+}
+
 // Helper: create a per-request SQL function
 function getSQL(c: { env: Bindings }) {
   return neon(c.env.DATABASE_URL)
@@ -35,9 +57,9 @@ app.get('/', (c) =>
 // List wallets (paginated, sortable)
 app.get('/wallets', async (c) => {
   const sql = getSQL(c)
-  const limit = Math.min(Number(c.req.query('limit') ?? 50), 100)
-  const offset = Number(c.req.query('offset') ?? 0)
-  const source = c.req.query('source')
+  const limit = Math.min(safeInt(c.req.query('limit'), 50), 100)
+  const offset = safeInt(c.req.query('offset'), 0)
+  const source = validateSource(c.req.query('source'))
   const sort = c.req.query('sort') === 'score' ? 'trust_score' : 'tx_count'
 
   // neon() doesn't support sql() identifier helper, use conditional queries
@@ -73,8 +95,8 @@ app.get('/wallets', async (c) => {
 // Leaderboard — top wallets by trust score
 app.get('/leaderboard', async (c) => {
   const sql = getSQL(c)
-  const limit = Math.min(Number(c.req.query('limit') ?? 20), 100)
-  const source = c.req.query('source')
+  const limit = Math.min(safeInt(c.req.query('limit'), 20), 100)
+  const source = validateSource(c.req.query('source'))
 
   const wallets = source
     ? await sql`
@@ -103,7 +125,8 @@ app.get('/leaderboard', async (c) => {
 // Wallet detail
 app.get('/wallet/:address', async (c) => {
   const sql = getSQL(c)
-  const address = c.req.param('address').toLowerCase()
+  const address = validateAddress(c.req.param('address'))
+  if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
 
   const wallet = await sql`SELECT * FROM wallets WHERE address = ${address}`
   if (wallet.length === 0) return c.json({ error: 'Wallet not found' }, 404)
@@ -130,7 +153,8 @@ app.get('/wallet/:address', async (c) => {
 // Trust score for a wallet
 app.get('/score/:address', async (c) => {
   const sql = getSQL(c)
-  const address = c.req.param('address').toLowerCase()
+  const address = validateAddress(c.req.param('address'))
+  if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
 
   const wallet = await sql`
     SELECT address, source, trust_score, score_breakdown, scored_at, tx_count
@@ -139,11 +163,12 @@ app.get('/score/:address', async (c) => {
   if (wallet.length === 0) return c.json({ error: 'Wallet not found' }, 404)
 
   const w = wallet[0]
-  if (w.trust_score === null) {
+  if (w.trust_score == null) {
     return c.json({
       address: w.address,
-      score: null,
-      message: 'Score not yet computed',
+      trust_score: null,
+      tier: null,
+      message: 'Score not yet computed. Run: npm run score',
     })
   }
 
@@ -166,9 +191,10 @@ app.get('/score/:address', async (c) => {
 // Wallet transactions
 app.get('/wallet/:address/transactions', async (c) => {
   const sql = getSQL(c)
-  const address = c.req.param('address').toLowerCase()
-  const limit = Math.min(Number(c.req.query('limit') ?? 25), 100)
-  const offset = Number(c.req.query('offset') ?? 0)
+  const address = validateAddress(c.req.param('address'))
+  if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
+  const limit = Math.min(safeInt(c.req.query('limit'), 25), 100)
+  const offset = safeInt(c.req.query('offset'), 0)
 
   const txs = await sql`
     SELECT * FROM transactions
@@ -183,7 +209,8 @@ app.get('/wallet/:address/transactions', async (c) => {
 // Wallet feedback
 app.get('/wallet/:address/feedback', async (c) => {
   const sql = getSQL(c)
-  const address = c.req.param('address').toLowerCase()
+  const address = validateAddress(c.req.param('address'))
+  if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
 
   const fb = await sql`
     SELECT f.* FROM feedback f

@@ -1,15 +1,22 @@
 import type {
   AgentKarmaOptions,
   TrustScore,
-  Wallet,
+  WalletLookupResponse,
   LeaderboardEntry,
-  Transaction,
-  PaginatedResponse,
+  TransactionsResponse,
   Stats,
 } from './types.js'
 
 const DEFAULT_BASE_URL = 'https://agent-karma.rushikeshmore271.workers.dev'
 const DEFAULT_TIMEOUT = 10_000
+const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
+
+function assertAddress(address: string): string {
+  if (!ETH_ADDRESS_RE.test(address)) {
+    throw new AgentKarmaError('Invalid address format. Expected 0x + 40 hex characters.', 0)
+  }
+  return address.toLowerCase()
+}
 
 export class AgentKarma {
   private baseUrl: string
@@ -55,12 +62,12 @@ export class AgentKarma {
    *
    * @example
    * ```ts
-   * const { score, tier } = await karma.getScore('0xABC...')
+   * const { trust_score, tier } = await karma.getScore('0xABC...')
    * if (tier === 'HIGH') { // safe to transact }
    * ```
    */
   async getScore(address: string): Promise<TrustScore> {
-    return this.fetch<TrustScore>(`/score/${address.toLowerCase()}`)
+    return this.fetch<TrustScore>(`/score/${assertAddress(address)}`)
   }
 
   /**
@@ -89,16 +96,15 @@ export class AgentKarma {
    * ```
    */
   async meetsThreshold(address: string, minScore: number): Promise<boolean> {
-    const { score } = await this.getScore(address)
-    return score >= minScore
+    const { trust_score } = await this.getScore(address)
+    return (trust_score ?? 0) >= minScore
   }
 
   /**
-   * Look up full wallet details.
+   * Look up full wallet details including transaction and feedback stats.
    */
-  async lookupWallet(address: string): Promise<Wallet> {
-    const res = await this.fetch<{ wallet: Wallet }>(`/wallet/${address.toLowerCase()}`)
-    return res.wallet
+  async lookupWallet(address: string): Promise<WalletLookupResponse> {
+    return this.fetch<WalletLookupResponse>(`/wallet/${assertAddress(address)}`)
   }
 
   /**
@@ -106,11 +112,13 @@ export class AgentKarma {
    */
   async getTransactions(
     address: string,
-    options?: { page?: number; limit?: number },
-  ): Promise<PaginatedResponse<Transaction>> {
-    const page = options?.page ?? 1
-    const limit = options?.limit ?? 50
-    return this.fetch(`/wallet/${address.toLowerCase()}/transactions?page=${page}&per_page=${limit}`)
+    options?: { limit?: number; offset?: number },
+  ): Promise<TransactionsResponse> {
+    const limit = options?.limit ?? 25
+    const offset = options?.offset ?? 0
+    return this.fetch<TransactionsResponse>(
+      `/wallet/${assertAddress(address)}/transactions?limit=${limit}&offset=${offset}`,
+    )
   }
 
   /**
@@ -124,7 +132,10 @@ export class AgentKarma {
     if (options?.limit) params.set('limit', String(options.limit))
     if (options?.source) params.set('source', options.source)
     const qs = params.toString()
-    return this.fetch<LeaderboardEntry[]>(`/leaderboard${qs ? '?' + qs : ''}`)
+    const res = await this.fetch<{ leaderboard: LeaderboardEntry[] }>(
+      `/leaderboard${qs ? '?' + qs : ''}`,
+    )
+    return res.leaderboard
   }
 
   /**
