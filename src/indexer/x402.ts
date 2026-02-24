@@ -120,7 +120,8 @@ async function indexX402(fromBlock: bigint, toBlock: bigint): Promise<{ txns: nu
               ON CONFLICT (address) DO UPDATE SET
                 source = CASE WHEN wallets.source = 'erc8004' THEN 'both' ELSE wallets.source END,
                 last_seen_at = NOW(),
-                tx_count = wallets.tx_count + 1
+                tx_count = wallets.tx_count + 1,
+                needs_rescore = true
               RETURNING (xmax = 0) as is_new
             `
             if (result[0]?.is_new) newWallets++

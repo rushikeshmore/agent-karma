@@ -10,6 +10,7 @@ export interface ScoreBreakdown {
   activity: number
   diversity: number
   feedback: number
+  volume: number
   age: number
   recency: number
   registered_bonus: number
@@ -120,4 +121,65 @@ export interface AgentKarmaOptions {
   baseUrl?: string
   /** Request timeout in ms. Default: 10000 */
   timeout?: number
+}
+
+/** Batch score entry */
+export interface BatchScoreEntry {
+  address: string
+  trust_score: number | null
+  tier: ScoreTier | null
+  breakdown: ScoreBreakdown | null
+  scored_at: string | null
+  role: WalletRole | null
+}
+
+/** Response from /wallets/batch-scores */
+export interface BatchScoresResponse {
+  scores: BatchScoreEntry[]
+  not_found: string[]
+}
+
+/** Score history entry */
+export interface ScoreHistoryEntry {
+  trust_score: number
+  score_breakdown: ScoreBreakdown
+  computed_at: string
+}
+
+/** Response from /wallet/:address/score-history */
+export interface ScoreHistoryResponse {
+  history: ScoreHistoryEntry[]
+}
+
+/** Params for submitting feedback */
+export interface SubmitFeedbackParams {
+  address: string
+  tx_hash: string
+  rating: number
+  comment?: string
+}
+
+/** Response from /feedback */
+export interface FeedbackResponse {
+  success: boolean
+  feedback_id: number
+}
+
+/** Options for listing wallets */
+export interface ListWalletsOptions {
+  limit?: number
+  offset?: number
+  source?: 'erc8004' | 'x402' | 'both'
+  sort?: 'score' | 'tx_count'
+  scoreMin?: number
+  scoreMax?: number
+}
+
+/** Response from /wallets */
+export interface ListWalletsResponse {
+  wallets: Wallet[]
+  total: number
+  limit: number
+  offset: number
+  sort: string
 }

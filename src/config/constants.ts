@@ -4,6 +4,12 @@ export const REPUTATION_REGISTRY = '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63' 
 export const IDENTITY_DEPLOY_BLOCK = 24339925n  // first mint: Jan 29 2026
 export const REPUTATION_DEPLOY_BLOCK = 24339925n // same block — both went live together
 
+// ERC-8004 on Base (same contract addresses, different chain)
+// Base deploy block estimated from Ethereum deploy date (Jan 29 2026)
+// ~43200 blocks/day on Base. Conservative start — will scan through empty blocks quickly.
+export const BASE_IDENTITY_DEPLOY_BLOCK = 26_000_000n
+export const BASE_REPUTATION_DEPLOY_BLOCK = 26_000_000n
+
 // USDC on Base (x402 payments settle here)
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
 

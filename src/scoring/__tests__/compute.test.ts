@@ -15,6 +15,7 @@ import {
   loyaltyScore,
   recencyScore,
   feedbackScore,
+  volumeScore,
   computeScore,
   WEIGHTS,
   type WalletSignals,
@@ -34,6 +35,8 @@ function makeWallet(overrides: Partial<WalletSignals> = {}): WalletSignals {
     unique_counterparties: 5,
     avg_feedback: 4.0,
     feedback_count: 10,
+    total_volume_usdc: 1000,
+    volume_counterparties: 5,
     is_registered: false,
     ...overrides,
   }
@@ -46,9 +49,13 @@ describe('WEIGHTS', () => {
     const sum = Object.values(WEIGHTS).reduce((a, b) => a + b, 0)
     expect(sum).toBeCloseTo(1.0)
   })
+
+  it('should have 7 entries', () => {
+    expect(Object.keys(WEIGHTS)).toHaveLength(7)
+  })
 })
 
-// --- ageScore ---
+// --- ageScore (log-scale) ---
 
 describe('ageScore', () => {
   it('returns 0 for invalid date', () => {
@@ -67,10 +74,16 @@ describe('ageScore', () => {
     expect(ageScore(daysAgo(365))).toBe(100)
   })
 
-  it('returns ~50 at 90 days', () => {
+  it('returns ~86 at 90 days (log-scale)', () => {
     const score = ageScore(daysAgo(90))
-    expect(score).toBeGreaterThan(45)
-    expect(score).toBeLessThan(55)
+    expect(score).toBeGreaterThan(83)
+    expect(score).toBeLessThan(90)
+  })
+
+  it('returns ~44 at 10 days', () => {
+    const score = ageScore(daysAgo(10))
+    expect(score).toBeGreaterThan(40)
+    expect(score).toBeLessThan(50)
   })
 
   it('returns 0 for brand new wallet', () => {
@@ -215,6 +228,35 @@ describe('feedbackScore', () => {
   })
 })
 
+// --- volumeScore ---
+
+describe('volumeScore', () => {
+  it('returns 50 (neutral) with no volume', () => {
+    expect(volumeScore(0, 0)).toBe(50)
+  })
+
+  it('returns 50 with negative volume', () => {
+    expect(volumeScore(-100, 5)).toBe(50)
+  })
+
+  it('returns ~50 for $100 avg deal size', () => {
+    // $500 total / 5 counterparties = $100 avg → log10(101)/log10(10001) * 100 ≈ 50
+    const score = volumeScore(500, 5)
+    expect(score).toBeGreaterThan(45)
+    expect(score).toBeLessThan(55)
+  })
+
+  it('returns 100 for $10K+ avg deal size', () => {
+    expect(volumeScore(100000, 10)).toBe(100)
+  })
+
+  it('returns low score for tiny deals', () => {
+    // $5 total / 5 counterparties = $1 avg
+    const score = volumeScore(5, 5)
+    expect(score).toBeLessThan(20)
+  })
+})
+
 // --- computeScore ---
 
 describe('computeScore', () => {
@@ -224,12 +266,13 @@ describe('computeScore', () => {
     expect(score).toBeLessThanOrEqual(100)
   })
 
-  it('returns all breakdown fields', () => {
+  it('returns all breakdown fields including volume', () => {
     const { breakdown } = computeScore(makeWallet())
     expect(breakdown).toHaveProperty('loyalty')
     expect(breakdown).toHaveProperty('activity')
     expect(breakdown).toHaveProperty('diversity')
     expect(breakdown).toHaveProperty('feedback')
+    expect(breakdown).toHaveProperty('volume')
     expect(breakdown).toHaveProperty('age')
     expect(breakdown).toHaveProperty('recency')
     expect(breakdown).toHaveProperty('registered_bonus')
@@ -256,6 +299,8 @@ describe('computeScore', () => {
         last_seen_at: daysAgo(100),
         avg_feedback: null,
         feedback_count: 0,
+        total_volume_usdc: 0,
+        volume_counterparties: 0,
         is_registered: false,
       }),
     )
@@ -271,6 +316,8 @@ describe('computeScore', () => {
         last_seen_at: new Date(),
         avg_feedback: 5,
         feedback_count: 100,
+        total_volume_usdc: 100000,
+        volume_counterparties: 10,
         is_registered: true,
       }),
     )
@@ -282,5 +329,13 @@ describe('computeScore', () => {
     for (const [key, val] of Object.entries(breakdown)) {
       expect(val, `${key} should be integer`).toBe(Math.round(val))
     }
+  })
+
+  it('volume defaults to neutral (50) when no volume data', () => {
+    const { breakdown } = computeScore(makeWallet({
+      total_volume_usdc: 0,
+      volume_counterparties: 0,
+    }))
+    expect(breakdown.volume).toBe(50)
   })
 })

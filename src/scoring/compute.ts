@@ -1,5 +1,5 @@
 /**
- * AgentKarma Trust Score Engine v2
+ * AgentKarma Trust Score Engine v3
  *
  * Computes a 0–100 trust score per wallet based on on-chain signals.
  * Runs as a CLI script: reads from DB, computes scores, writes back.
@@ -11,12 +11,13 @@
  *   - Arbitrum Sybil detection — cap suspiciously concentrated patterns
  *
  * Score components (weighted):
- *   - Loyalty score    (32%) — repeat business ratio (core differentiator)
- *   - Activity score   (20%) — transaction count, log scale
- *   - Diversity score  (18%) — unique counterparties, log scale
+ *   - Loyalty score    (30%) — repeat business ratio (core differentiator)
+ *   - Activity score   (18%) — transaction count, log scale
+ *   - Diversity score  (16%) — unique counterparties, log scale
  *   - Feedback score   (15%) — on-chain reputation, confidence-weighted
- *   - Age score         (9%) — time since first on-chain appearance
+ *   - Volume score     (10%) — avg USDC deal size, log scale
  *   - Recency score     (6%) — how recently active
+ *   - Age score         (5%) — time since first on-chain appearance, log scale
  *
  * Bonus: +5 for ERC-8004 registered agents (on-chain identity commitment)
  */
@@ -25,22 +26,27 @@ import sql from '../db/client.js'
 
 // --- Weights (must sum to 1.0) ---
 export const WEIGHTS = {
-  loyalty: 0.32,
-  activity: 0.20,
-  diversity: 0.18,
+  loyalty: 0.30,
+  activity: 0.18,
+  diversity: 0.16,
   feedback: 0.15,
-  age: 0.09,
+  volume: 0.10,
   recency: 0.06,
+  age: 0.05,
 }
 
 // --- Scoring functions (each returns 0–100) ---
 
-/** Age: days since first_seen_at. Caps at 180 days for full score. */
+/**
+ * Age: days since first_seen_at, log-scale.
+ * Day 1→0, Day 10→44, Day 30→65, Day 90→86, Day 180→100
+ * Early days matter more — difference between day 1 and 10 is huge for trust.
+ */
 export function ageScore(firstSeenAt: Date): number {
   if (isNaN(firstSeenAt.getTime())) return 0
   const days = (Date.now() - firstSeenAt.getTime()) / (1000 * 60 * 60 * 24)
   if (days < 0) return 0
-  return Math.min(100, (days / 180) * 100)
+  return Math.min(100, (Math.log10(days + 1) / Math.log10(181)) * 100)
 }
 
 /**
@@ -106,6 +112,18 @@ export function feedbackScore(avgFeedback: number | null, feedbackCount: number)
   return confidence * rawScore + (1 - confidence) * 50
 }
 
+/**
+ * Volume: average USDC deal size on log10 scale.
+ * Measures economic commitment — larger deals = more at stake = higher trust.
+ * Defaults to 50 (neutral) when no volume data — same pattern as feedbackScore.
+ * $1→7.5, $10→25, $100→50, $1000→75, $10000→100
+ */
+export function volumeScore(totalVolumeUSDC: number, counterparties: number): number {
+  if (totalVolumeUSDC <= 0 || counterparties <= 0) return 50 // neutral, like feedback
+  const avgDealSize = totalVolumeUSDC / counterparties
+  return Math.min(100, (Math.log10(avgDealSize + 1) / Math.log10(10001)) * 100)
+}
+
 // --- Main compute function ---
 
 export interface WalletSignals {
@@ -116,6 +134,8 @@ export interface WalletSignals {
   unique_counterparties: number
   avg_feedback: number | null
   feedback_count: number
+  total_volume_usdc: number
+  volume_counterparties: number
   is_registered: boolean // ERC-8004 identity
 }
 
@@ -129,14 +149,16 @@ export function computeScore(w: WalletSignals): {
   const loyalty = loyaltyScore(w.tx_count, w.unique_counterparties)
   const recency = recencyScore(w.last_seen_at)
   const feedback = feedbackScore(w.avg_feedback, w.feedback_count)
+  const volume = volumeScore(w.total_volume_usdc, w.volume_counterparties)
 
   let score = Math.round(
     loyalty * WEIGHTS.loyalty +
     activity * WEIGHTS.activity +
     diversity * WEIGHTS.diversity +
     feedback * WEIGHTS.feedback +
-    age * WEIGHTS.age +
-    recency * WEIGHTS.recency
+    volume * WEIGHTS.volume +
+    recency * WEIGHTS.recency +
+    age * WEIGHTS.age
   )
 
   // ERC-8004 registration bonus: on-chain identity commitment costs gas
@@ -153,6 +175,7 @@ export function computeScore(w: WalletSignals): {
       activity: Math.round(activity),
       diversity: Math.round(diversity),
       feedback: Math.round(feedback),
+      volume: Math.round(volume),
       age: Math.round(age),
       recency: Math.round(recency),
       registered_bonus: w.is_registered ? 5 : 0,
@@ -163,22 +186,46 @@ export function computeScore(w: WalletSignals): {
 // --- CLI: compute scores for all wallets ---
 
 async function main() {
-  console.log('AgentKarma Trust Score Engine v2\n')
-  console.log('Weights: loyalty=32%, activity=20%, diversity=18%, feedback=15%, age=9%, recency=6%')
-  console.log('Bonus: +5 for ERC-8004 registered agents\n')
+  const fullRescore = process.argv.includes('--full')
+  console.log('AgentKarma Trust Score Engine v3\n')
+  console.log('Weights: loyalty=30%, activity=18%, diversity=16%, feedback=15%, volume=10%, recency=6%, age=5%')
+  console.log('Bonus: +5 for ERC-8004 registered agents')
+  console.log(`Mode: ${fullRescore ? 'FULL rescore (all wallets)' : 'incremental (needs_rescore only)'}\n`)
 
-  // Add score + role columns if missing
+  // Add score + role + needs_rescore columns if missing
   await sql`
     ALTER TABLE wallets
     ADD COLUMN IF NOT EXISTS trust_score INTEGER,
     ADD COLUMN IF NOT EXISTS score_breakdown JSONB,
     ADD COLUMN IF NOT EXISTS scored_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS role VARCHAR(10)
+    ADD COLUMN IF NOT EXISTS role VARCHAR(10),
+    ADD COLUMN IF NOT EXISTS needs_rescore BOOLEAN DEFAULT true
   `
 
-  // Batch: get all wallets
-  const wallets = await sql`SELECT * FROM wallets ORDER BY id`
-  console.log(`Found ${wallets.length} wallets`)
+  // Ensure score_history table exists
+  await sql`
+    CREATE TABLE IF NOT EXISTS score_history (
+      id              SERIAL PRIMARY KEY,
+      address         VARCHAR(42) NOT NULL,
+      trust_score     INTEGER NOT NULL,
+      score_breakdown JSONB NOT NULL,
+      computed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_sh_address ON score_history(address)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_sh_computed ON score_history(computed_at)`
+
+  // Batch: get wallets (incremental or full)
+  const wallets = fullRescore
+    ? await sql`SELECT * FROM wallets ORDER BY id`
+    : await sql`SELECT * FROM wallets WHERE needs_rescore = true ORDER BY id`
+
+  if (wallets.length === 0) {
+    console.log('No wallets need rescoring. Use --full to rescore all.')
+    await sql.end()
+    return
+  }
+  console.log(`Found ${wallets.length} wallets to score`)
 
   // Batch: precompute counterparty counts for all wallets with transactions
   console.log('Precomputing counterparty stats...')
@@ -241,7 +288,28 @@ async function main() {
       roleMap.set(row.addr, 'seller')
     }
   }
-  console.log(`  ${roleMap.size} wallets have roles (buyer/seller/both)\n`)
+  console.log(`  ${roleMap.size} wallets have roles (buyer/seller/both)`)
+
+  // Batch: precompute USDC volume stats
+  console.log('Precomputing volume stats...')
+  const volumeStats = await sql`
+    SELECT
+      addr,
+      COALESCE(SUM(amount_usdc), 0)::float as total_volume,
+      COUNT(DISTINCT counterparty)::int as volume_counterparties
+    FROM (
+      SELECT payer as addr, recipient as counterparty, amount_usdc FROM transactions WHERE amount_usdc IS NOT NULL
+      UNION ALL
+      SELECT recipient as addr, payer as counterparty, amount_usdc FROM transactions WHERE amount_usdc IS NOT NULL
+    ) t
+    WHERE counterparty IS NOT NULL
+    GROUP BY addr
+  `
+  const volMap = new Map<string, { volume: number; counterparties: number }>()
+  for (const row of volumeStats) {
+    volMap.set(row.addr, { volume: row.total_volume, counterparties: row.volume_counterparties })
+  }
+  console.log(`  ${volMap.size} wallets have volume data\n`)
 
   // Score all wallets in memory, then bulk UPDATE
   const startTime = Date.now()
@@ -252,6 +320,7 @@ async function main() {
   for (const w of wallets) {
     const cp = cpMap.get(w.address) ?? 0
     const fb = fbMap.get(w.address)
+    const vol = volMap.get(w.address)
 
     const signals: WalletSignals = {
       address: w.address,
@@ -261,6 +330,8 @@ async function main() {
       unique_counterparties: cp,
       avg_feedback: fb?.avg ?? null,
       feedback_count: fb?.count ?? 0,
+      total_volume_usdc: vol?.volume ?? 0,
+      volume_counterparties: vol?.counterparties ?? 0,
       is_registered: w.erc8004_id !== null,
     }
 
@@ -273,6 +344,19 @@ async function main() {
     })
   }
   console.log(`Computed ${results.length} scores in memory`)
+
+  // Insert score history before updating wallets
+  console.log('Saving score history...')
+  for (let i = 0; i < results.length; i += BATCH_SIZE) {
+    const batch = results.slice(i, i + BATCH_SIZE)
+    for (const b of batch) {
+      await sql`
+        INSERT INTO score_history (address, trust_score, score_breakdown)
+        VALUES (${b.address}, ${b.score}, ${b.breakdown}::jsonb)
+      `
+    }
+  }
+  console.log(`  ${results.length} score snapshots saved`)
 
   // Bulk UPDATE using parameterized queries — one SQL statement per batch (not per row)
   console.log(`Writing scores in bulk batches of ${BATCH_SIZE}...`)
@@ -290,7 +374,8 @@ async function main() {
               trust_score = ${b.score},
               score_breakdown = ${b.breakdown}::jsonb,
               scored_at = NOW(),
-              role = ${b.role}
+              role = ${b.role},
+              needs_rescore = false
             WHERE address = ${b.address}
           `
         }

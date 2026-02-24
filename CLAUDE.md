@@ -19,30 +19,48 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 ## Scripts
 - `npm run test:rpc` — Phase 0.5 validation
 - `npm run db:migrate` — idempotent schema migration
-- `npm run indexer:erc8004` — index ERC-8004 mints + feedback
+- `npm run indexer:erc8004` — index ERC-8004 mints + feedback (Ethereum + Base)
 - `npm run indexer:x402` — index x402 payments on Base
 - `npm run dev` — local API server with watch mode
 - `npm run mcp` — MCP server (stdio transport)
+- `npm run score` — compute trust scores (use `--full` for full rescore)
 
 ## Key Contracts
-- IdentityRegistry: `0x8004A169...` (Ethereum, block 24339925)
-- ReputationRegistry: `0x8004BAa1...` (Ethereum, block 24339925)
+- IdentityRegistry: `0x8004A169...` (Ethereum block 24339925, Base block ~26000000)
+- ReputationRegistry: `0x8004BAa1...` (Ethereum block 24339925, Base block ~26000000)
 - USDC on Base: `0x833589fC...`
 
-## MCP Tools (5)
+## API Endpoints (v0.3.0)
+- `GET /` — health check
+- `GET /score/:address` — trust score with tier + breakdown
+- `GET /wallet/:address` — full wallet detail + stats
+- `GET /wallet/:address/transactions` — transaction history
+- `GET /wallet/:address/feedback` — feedback history
+- `GET /wallet/:address/score-history` — score trend over time
+- `GET /wallets` — browse wallets (filterable by source, score_min, score_max)
+- `GET /leaderboard` — top wallets by score
+- `GET /stats` — database statistics
+- `POST /wallets/batch-scores` — batch lookup (max 100)
+- `POST /feedback` — submit feedback for a transaction
+
+## MCP Tools (6)
 - `lookup_wallet` — wallet info + trust score + stats
 - `get_wallet_trust_signals` — trust indicators (tx history, counterparties, feedback)
 - `get_trust_score` — quick 0-100 score check with tier + breakdown
+- `batch_trust_scores` — batch lookup for multiple wallets
 - `list_wallets` — browse indexed wallets by source
 - `agentkarma_stats` — database statistics
 
-## Scoring Algorithm
-6 weighted signals: loyalty (32%), activity (20%), diversity (18%), feedback (15%), age (9%), recency (6%)
+## Scoring Algorithm (v3)
+7 weighted signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%)
 +5 bonus for ERC-8004 registered agents. Sybil resistance on loyalty signal.
-Bulk UPDATE via CTE+VALUES (500 wallets/batch, 6200 in 7.4s).
+Age uses log-scale (early days matter more). Volume defaults to neutral when no data.
+Incremental scoring via `needs_rescore` flag. Score history tracked per run.
+
+## Dual Entry Points
+Every API route exists in BOTH:
+- `src/api/routes.ts` — Node.js/postgres.js (tagged templates with identifier helpers)
+- `src/worker.ts` — CF Workers/neon serverless (no identifier helpers, conditional SQL)
 
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)
-
-## DB State
-- 6,200 wallets (100% scored), 1,992 transactions, 676 feedback, 13 MB / 500 MB

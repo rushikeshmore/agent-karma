@@ -1,6 +1,6 @@
 {
   "name": "agent-karma",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Credit bureau for AI agent wallets — trust scores from public blockchain data",
   "type": "module",
   "scripts": {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AgentKarma, AgentKarmaError } from '../client.js'
 
 const VALID_ADDRESS = '0x' + 'a'.repeat(40)
+const VALID_TX_HASH = '0x' + 'b'.repeat(64)
 
 function mockFetch(body: unknown, status = 200) {
   return vi.fn().mockResolvedValue({
@@ -28,7 +29,7 @@ describe('AgentKarma SDK', () => {
         address: VALID_ADDRESS,
         trust_score: 84,
         tier: 'HIGH',
-        breakdown: { loyalty: 90, activity: 80, diversity: 70, feedback: 60, age: 50, recency: 100, registered_bonus: 5 },
+        breakdown: { loyalty: 90, activity: 80, diversity: 70, feedback: 60, volume: 50, age: 50, recency: 100, registered_bonus: 5 },
         scored_at: '2026-01-01T00:00:00Z',
         source: 'erc8004',
         tx_count: 42,
@@ -161,6 +162,141 @@ describe('AgentKarma SDK', () => {
       expect(result.transactions).toBe(1992)
       expect(result.feedback).toBe(676)
       expect(result.db_limit_mb).toBe(500)
+    })
+  })
+
+  // --- batchScores ---
+
+  describe('batchScores', () => {
+    it('posts addresses and returns scores + not_found', async () => {
+      const response = {
+        scores: [{ address: VALID_ADDRESS, trust_score: 80, tier: 'HIGH' }],
+        not_found: [],
+      }
+      globalThis.fetch = mockFetch(response)
+
+      const result = await karma.batchScores([VALID_ADDRESS])
+      expect(result.scores).toHaveLength(1)
+      expect(result.scores[0].trust_score).toBe(80)
+      expect(result.not_found).toHaveLength(0)
+    })
+
+    it('sends POST request with JSON body', async () => {
+      globalThis.fetch = mockFetch({ scores: [], not_found: [] })
+
+      await karma.batchScores([VALID_ADDRESS])
+
+      const [url, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(url).toContain('/wallets/batch-scores')
+      expect(options.method).toBe('POST')
+      expect(options.headers['Content-Type']).toBe('application/json')
+    })
+
+    it('throws on invalid address in batch', async () => {
+      await expect(karma.batchScores(['invalid'])).rejects.toThrow(AgentKarmaError)
+    })
+  })
+
+  // --- getScoreHistory ---
+
+  describe('getScoreHistory', () => {
+    it('returns history array', async () => {
+      const response = {
+        history: [
+          { trust_score: 80, score_breakdown: {}, computed_at: '2026-01-01T00:00:00Z' },
+          { trust_score: 75, score_breakdown: {}, computed_at: '2025-12-01T00:00:00Z' },
+        ],
+      }
+      globalThis.fetch = mockFetch(response)
+
+      const result = await karma.getScoreHistory(VALID_ADDRESS)
+      expect(result.history).toHaveLength(2)
+      expect(result.history[0].trust_score).toBe(80)
+    })
+
+    it('passes limit param', async () => {
+      globalThis.fetch = mockFetch({ history: [] })
+
+      await karma.getScoreHistory(VALID_ADDRESS, { limit: 5 })
+
+      const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      expect(calledUrl).toContain('limit=5')
+    })
+
+    it('throws on invalid address', async () => {
+      await expect(karma.getScoreHistory('bad')).rejects.toThrow(AgentKarmaError)
+    })
+  })
+
+  // --- submitFeedback ---
+
+  describe('submitFeedback', () => {
+    it('posts feedback and returns feedback_id', async () => {
+      const response = { success: true, feedback_id: 42 }
+      globalThis.fetch = mockFetch(response)
+
+      const result = await karma.submitFeedback({
+        address: VALID_ADDRESS,
+        tx_hash: VALID_TX_HASH,
+        rating: 5,
+        comment: 'Great agent',
+      })
+      expect(result.success).toBe(true)
+      expect(result.feedback_id).toBe(42)
+    })
+
+    it('sends POST with correct body', async () => {
+      globalThis.fetch = mockFetch({ success: true, feedback_id: 1 })
+
+      await karma.submitFeedback({
+        address: VALID_ADDRESS,
+        tx_hash: VALID_TX_HASH,
+        rating: 4,
+      })
+
+      const [, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(options.method).toBe('POST')
+      const body = JSON.parse(options.body)
+      expect(body.address).toBe(VALID_ADDRESS)
+      expect(body.tx_hash).toBe(VALID_TX_HASH)
+      expect(body.rating).toBe(4)
+    })
+
+    it('throws on invalid address', async () => {
+      await expect(
+        karma.submitFeedback({ address: 'bad', tx_hash: VALID_TX_HASH, rating: 5 }),
+      ).rejects.toThrow(AgentKarmaError)
+    })
+  })
+
+  // --- listWallets ---
+
+  describe('listWallets', () => {
+    it('returns wallets with total', async () => {
+      const response = {
+        wallets: [{ address: VALID_ADDRESS, trust_score: 80 }],
+        total: 100,
+        limit: 50,
+        offset: 0,
+        sort: 'tx_count',
+      }
+      globalThis.fetch = mockFetch(response)
+
+      const result = await karma.listWallets()
+      expect(result.wallets).toHaveLength(1)
+      expect(result.total).toBe(100)
+    })
+
+    it('passes filter params correctly', async () => {
+      globalThis.fetch = mockFetch({ wallets: [], total: 0, limit: 10, offset: 0, sort: 'score' })
+
+      await karma.listWallets({ limit: 10, sort: 'score', scoreMin: 50, scoreMax: 90 })
+
+      const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      expect(calledUrl).toContain('limit=10')
+      expect(calledUrl).toContain('sort=score')
+      expect(calledUrl).toContain('score_min=50')
+      expect(calledUrl).toContain('score_max=90')
     })
   })
 

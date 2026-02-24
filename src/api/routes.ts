@@ -32,31 +32,130 @@ function validateSource(source: string | undefined): string | undefined {
 app.get('/', (c) =>
   c.json({
     name: 'AgentKarma',
-    version: '0.2.0',
+    version: '0.3.0',
     description: 'Credit bureau for AI agent wallets',
   })
 )
 
-// List wallets (paginated, sortable by trust_score or tx_count)
+const TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/
+
+function computeTier(score: number): string {
+  return score >= 80 ? 'HIGH' : score >= 50 ? 'MEDIUM' : score >= 20 ? 'LOW' : 'MINIMAL'
+}
+
+// Batch scores — look up multiple wallets at once
+app.post('/wallets/batch-scores', async (c) => {
+  const body = await c.req.json()
+  const { addresses } = body
+
+  if (!Array.isArray(addresses) || addresses.length === 0) {
+    return c.json({ error: 'addresses must be a non-empty array' }, 400)
+  }
+  if (addresses.length > 100) {
+    return c.json({ error: 'Maximum 100 addresses per request' }, 400)
+  }
+
+  const normalized: string[] = []
+  for (const addr of addresses) {
+    if (typeof addr !== 'string' || !ETH_ADDRESS_RE.test(addr)) {
+      return c.json({ error: `Invalid address: ${addr}` }, 400)
+    }
+    normalized.push(addr.toLowerCase())
+  }
+
+  const wallets = await sql`
+    SELECT address, trust_score, score_breakdown, scored_at, role
+    FROM wallets WHERE address = ANY(${normalized})
+  `
+
+  const foundMap = new Map<string, any>()
+  for (const w of wallets) {
+    foundMap.set(w.address, {
+      ...w,
+      tier: w.trust_score != null ? computeTier(w.trust_score) : null,
+    })
+  }
+
+  const scores = normalized.filter((a) => foundMap.has(a)).map((a) => foundMap.get(a))
+  const not_found = normalized.filter((a) => !foundMap.has(a))
+
+  return c.json({ scores, not_found })
+})
+
+// Submit feedback for a transaction
+app.post('/feedback', async (c) => {
+  const body = await c.req.json()
+  const { address, tx_hash, rating, comment } = body
+
+  const validAddress = typeof address === 'string' ? validateAddress(address) : null
+  if (!validAddress) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
+
+  if (typeof tx_hash !== 'string' || !TX_HASH_RE.test(tx_hash)) {
+    return c.json({ error: 'Invalid tx_hash format. Expected 0x + 64 hex characters.' }, 400)
+  }
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return c.json({ error: 'rating must be an integer between 1 and 5' }, 400)
+  }
+
+  // Verify transaction exists
+  const txRows = await sql`
+    SELECT payer, recipient, block_number FROM transactions WHERE tx_hash = ${tx_hash.toLowerCase()}
+  `
+  if (txRows.length === 0) return c.json({ error: 'Transaction not found' }, 404)
+
+  const tx = txRows[0]
+
+  // Verify address is payer or recipient
+  if (tx.payer !== validAddress && tx.recipient !== validAddress) {
+    return c.json({ error: 'Address is not a party to this transaction' }, 400)
+  }
+
+  // Look up target wallet's erc8004_id
+  const walletRows = await sql`
+    SELECT erc8004_id FROM wallets WHERE address = ${validAddress}
+  `
+  const agentId = walletRows.length > 0 && walletRows[0].erc8004_id != null
+    ? walletRows[0].erc8004_id
+    : 0
+
+  const result = await sql`
+    INSERT INTO feedback (agent_id, client_address, feedback_index, value, value_decimals, block_number, tx_hash, source, target_address)
+    VALUES (${agentId}, ${validAddress}, 0, ${rating}, 0, ${tx.block_number}, ${tx_hash.toLowerCase()}, 'api', ${validAddress})
+    RETURNING id
+  `
+
+  // Mark wallet for rescoring
+  await sql`UPDATE wallets SET needs_rescore = true WHERE address = ${validAddress}`
+
+  return c.json({ success: true, feedback_id: result[0].id })
+})
+
+// List wallets (paginated, sortable by trust_score or tx_count, filterable by score range)
 app.get('/wallets', async (c) => {
   const limit = Math.min(safeInt(c.req.query('limit'), 50), 100)
   const offset = safeInt(c.req.query('offset'), 0)
   const source = validateSource(c.req.query('source'))
   const sort = c.req.query('sort') === 'score' ? 'trust_score' : 'tx_count'
+  const scoreMin = c.req.query('score_min') != null ? safeInt(c.req.query('score_min'), 0) : null
+  const scoreMax = c.req.query('score_max') != null ? safeInt(c.req.query('score_max'), 100) : null
 
-  const wallets = source
-    ? await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
-        FROM wallets WHERE source = ${source}
-        ORDER BY ${sql(sort)} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
-      `
-    : await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
-        FROM wallets
-        ORDER BY ${sql(sort)} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
-      `
+  const conditions = []
+  if (source) conditions.push(sql`source = ${source}`)
+  if (scoreMin != null) conditions.push(sql`trust_score >= ${scoreMin}`)
+  if (scoreMax != null) conditions.push(sql`trust_score <= ${scoreMax}`)
 
-  const total = await sql`SELECT COUNT(*)::int as count FROM wallets`
+  const where = conditions.length > 0
+    ? sql`WHERE ${conditions.reduce((a, b) => sql`${a} AND ${b}`)}`
+    : sql``
+
+  const wallets = await sql`
+    SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
+    FROM wallets ${where}
+    ORDER BY ${sql(sort)} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
+  `
+
+  const total = await sql`SELECT COUNT(*)::int as count FROM wallets ${where}`
 
   return c.json({ wallets, total: total[0].count, limit, offset, sort })
 })
@@ -115,6 +214,21 @@ app.get('/wallet/:address', async (c) => {
       feedback: feedbackCount[0].count,
     },
   })
+})
+
+// Score history for a wallet
+app.get('/wallet/:address/score-history', async (c) => {
+  const address = validateAddress(c.req.param('address'))
+  if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
+  const limit = Math.min(safeInt(c.req.query('limit'), 20), 100)
+
+  const history = await sql`
+    SELECT trust_score, score_breakdown, computed_at
+    FROM score_history WHERE address = ${address}
+    ORDER BY computed_at DESC LIMIT ${limit}
+  `
+
+  return c.json({ history })
 })
 
 // Trust score for a wallet
