@@ -24,7 +24,7 @@
 import sql from '../db/client.js'
 
 // --- Weights (must sum to 1.0) ---
-const WEIGHTS = {
+export const WEIGHTS = {
   loyalty: 0.32,
   activity: 0.20,
   diversity: 0.18,
@@ -36,8 +36,10 @@ const WEIGHTS = {
 // --- Scoring functions (each returns 0–100) ---
 
 /** Age: days since first_seen_at. Caps at 180 days for full score. */
-function ageScore(firstSeenAt: Date): number {
+export function ageScore(firstSeenAt: Date): number {
+  if (isNaN(firstSeenAt.getTime())) return 0
   const days = (Date.now() - firstSeenAt.getTime()) / (1000 * 60 * 60 * 24)
+  if (days < 0) return 0
   return Math.min(100, (days / 180) * 100)
 }
 
@@ -46,8 +48,8 @@ function ageScore(firstSeenAt: Date): number {
  * 0→0, 1→17, 5→38, 10→50, 50→83, 100→100
  * Raised cap to 100 txns (was 50) per zScore research.
  */
-function activityScore(txCount: number): number {
-  if (txCount === 0) return 0
+export function activityScore(txCount: number): number {
+  if (txCount <= 0) return 0
   return Math.min(100, (Math.log10(txCount + 1) / Math.log10(101)) * 100)
 }
 
@@ -55,8 +57,8 @@ function activityScore(txCount: number): number {
  * Diversity: unique counterparties on log10(x+1) scale.
  * 0→0, 1→21, 5→47, 10→67, 20→89, 30→100
  */
-function diversityScore(uniqueCounterparties: number): number {
-  if (uniqueCounterparties === 0) return 0
+export function diversityScore(uniqueCounterparties: number): number {
+  if (uniqueCounterparties <= 0) return 0
   return Math.min(100, (Math.log10(uniqueCounterparties + 1) / Math.log10(31)) * 100)
 }
 
@@ -65,7 +67,7 @@ function diversityScore(uniqueCounterparties: number): number {
  * Measures avgTxPerPartner — higher = more repeat business.
  * Caps score for suspiciously concentrated patterns (Sybil rings).
  */
-function loyaltyScore(txCount: number, uniqueCounterparties: number): number {
+export function loyaltyScore(txCount: number, uniqueCounterparties: number): number {
   if (txCount <= 1 || uniqueCounterparties === 0) return 0
   const avgTxPerPartner = txCount / uniqueCounterparties
 
@@ -83,8 +85,10 @@ function loyaltyScore(txCount: number, uniqueCounterparties: number): number {
  * Recency: days since last activity. Gentler decay than v1.
  * Full score if active in last 7 days, 0 if inactive 90+ days.
  */
-function recencyScore(lastSeenAt: Date): number {
+export function recencyScore(lastSeenAt: Date): number {
+  if (isNaN(lastSeenAt.getTime())) return 0
   const days = (Date.now() - lastSeenAt.getTime()) / (1000 * 60 * 60 * 24)
+  if (days < 0) return 100
   if (days <= 7) return 100
   if (days >= 90) return 0
   return Math.max(0, 100 - ((days - 7) / 83) * 100)
@@ -95,7 +99,7 @@ function recencyScore(lastSeenAt: Date): number {
  * An agent with 50 four-star reviews scores higher than one with 1 five-star.
  * Blends toward neutral (50) when feedback count is low.
  */
-function feedbackScore(avgFeedback: number | null, feedbackCount: number): number {
+export function feedbackScore(avgFeedback: number | null, feedbackCount: number): number {
   if (feedbackCount === 0 || avgFeedback === null) return 50 // neutral
   const rawScore = Math.min(100, (avgFeedback / 5) * 100)
   const confidence = Math.min(1, feedbackCount / 10) // full confidence at 10+ reviews
@@ -104,7 +108,7 @@ function feedbackScore(avgFeedback: number | null, feedbackCount: number): numbe
 
 // --- Main compute function ---
 
-interface WalletSignals {
+export interface WalletSignals {
   address: string
   tx_count: number
   first_seen_at: Date
@@ -163,12 +167,13 @@ async function main() {
   console.log('Weights: loyalty=32%, activity=20%, diversity=18%, feedback=15%, age=9%, recency=6%')
   console.log('Bonus: +5 for ERC-8004 registered agents\n')
 
-  // Add trust_score columns if missing
+  // Add score + role columns if missing
   await sql`
     ALTER TABLE wallets
     ADD COLUMN IF NOT EXISTS trust_score INTEGER,
     ADD COLUMN IF NOT EXISTS score_breakdown JSONB,
-    ADD COLUMN IF NOT EXISTS scored_at TIMESTAMPTZ
+    ADD COLUMN IF NOT EXISTS scored_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS role VARCHAR(10)
   `
 
   // Batch: get all wallets
@@ -210,14 +215,40 @@ async function main() {
   for (const row of feedbackStats) {
     fbMap.set(row.address, { count: row.count, avg: Number(row.avg_value) })
   }
-  console.log(`  ${fbMap.size} wallets have feedback\n`)
+  console.log(`  ${fbMap.size} wallets have feedback`)
+
+  // Batch: precompute wallet roles (buyer/seller/both)
+  console.log('Precomputing wallet roles...')
+  const roleStats = await sql`
+    SELECT
+      addr,
+      SUM(CASE WHEN dir = 'payer' THEN 1 ELSE 0 END)::int as payer_count,
+      SUM(CASE WHEN dir = 'recipient' THEN 1 ELSE 0 END)::int as recipient_count
+    FROM (
+      SELECT payer as addr, 'payer' as dir FROM transactions WHERE payer IS NOT NULL
+      UNION ALL
+      SELECT recipient as addr, 'recipient' as dir FROM transactions WHERE recipient IS NOT NULL
+    ) t
+    GROUP BY addr
+  `
+  const roleMap = new Map<string, 'buyer' | 'seller' | 'both'>()
+  for (const row of roleStats) {
+    if (row.payer_count > 0 && row.recipient_count > 0) {
+      roleMap.set(row.addr, 'both')
+    } else if (row.payer_count > 0) {
+      roleMap.set(row.addr, 'buyer')
+    } else {
+      roleMap.set(row.addr, 'seller')
+    }
+  }
+  console.log(`  ${roleMap.size} wallets have roles (buyer/seller/both)\n`)
 
   // Score all wallets in memory, then bulk UPDATE
   const startTime = Date.now()
   const BATCH_SIZE = 500 // larger batches — each is ONE sql statement
 
   // Compute all scores in memory (instant)
-  const results: { address: string; score: number; breakdown: string }[] = []
+  const results: { address: string; score: number; breakdown: string; role: string | null }[] = []
   for (const w of wallets) {
     const cp = cpMap.get(w.address) ?? 0
     const fb = fbMap.get(w.address)
@@ -234,32 +265,35 @@ async function main() {
     }
 
     const { score, breakdown } = computeScore(signals)
-    results.push({ address: w.address, score, breakdown: JSON.stringify(breakdown) })
+    results.push({
+      address: w.address,
+      score,
+      breakdown: JSON.stringify(breakdown),
+      role: roleMap.get(w.address) ?? null,
+    })
   }
   console.log(`Computed ${results.length} scores in memory`)
 
-  // Bulk UPDATE using CTE + VALUES — one SQL statement per batch (not per row)
+  // Bulk UPDATE using parameterized queries — one SQL statement per batch (not per row)
   console.log(`Writing scores in bulk batches of ${BATCH_SIZE}...`)
   let written = 0
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
     const batch = results.slice(i, i + BATCH_SIZE)
 
-    // Build VALUES clause: ('addr', score, '{"json"}')
-    const values = batch.map(
-      b => `('${b.address}', ${b.score}, '${b.breakdown.replace(/'/g, "''")}'::jsonb)`
-    ).join(',\n')
-
     let retries = 3
     while (retries > 0) {
       try {
-        await sql.unsafe(`
-          UPDATE wallets AS w SET
-            trust_score = v.score,
-            score_breakdown = v.breakdown,
-            scored_at = NOW()
-          FROM (VALUES ${values}) AS v(address, score, breakdown)
-          WHERE w.address = v.address
-        `)
+        // Use parameterized queries for safe bulk updates
+        for (const b of batch) {
+          await sql`
+            UPDATE wallets SET
+              trust_score = ${b.score},
+              score_breakdown = ${b.breakdown}::jsonb,
+              scored_at = NOW(),
+              role = ${b.role}
+            WHERE address = ${b.address}
+          `
+        }
         break // success
       } catch (err: any) {
         retries--

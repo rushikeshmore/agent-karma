@@ -87,6 +87,10 @@ async function migrate() {
   `
   console.log('  indexer_state table ready')
 
+  // --- add role column to wallets (added 2026-02-24) ---
+  await sql`ALTER TABLE wallets ADD COLUMN IF NOT EXISTS role VARCHAR(10)`
+  console.log('  wallets.role column ready')
+
   // --- check DB size ---
   const sizeResult = await sql`SELECT pg_database_size(current_database()) as size`
   const sizeMB = (Number(sizeResult[0].size) / 1024 / 1024).toFixed(1)

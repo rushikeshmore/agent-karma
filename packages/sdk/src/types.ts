@@ -1,6 +1,9 @@
 /** Trust score tier */
 export type ScoreTier = 'HIGH' | 'MEDIUM' | 'LOW' | 'MINIMAL'
 
+/** Wallet role derived from transaction direction */
+export type WalletRole = 'buyer' | 'seller' | 'both'
+
 /** Score breakdown by signal */
 export interface ScoreBreakdown {
   loyalty: number
@@ -12,13 +15,16 @@ export interface ScoreBreakdown {
   registered_bonus: number
 }
 
-/** Trust score result */
+/** Trust score result from /score/:address */
 export interface TrustScore {
   address: string
-  score: number
-  tier: ScoreTier
-  breakdown: ScoreBreakdown
-  scored_at: string
+  trust_score: number | null
+  tier: ScoreTier | null
+  breakdown: ScoreBreakdown | null
+  scored_at: string | null
+  source: string
+  tx_count: number
+  role: WalletRole | null
 }
 
 /** Wallet info */
@@ -32,15 +38,33 @@ export interface Wallet {
   last_seen_at: string
   trust_score: number | null
   score_breakdown: ScoreBreakdown | null
+  scored_at: string | null
+  role: WalletRole | null
 }
 
-/** Leaderboard entry */
+/** Wallet stats from /wallet/:address */
+export interface WalletStats {
+  transactions: number
+  feedback: number
+}
+
+/** Full response from /wallet/:address */
+export interface WalletLookupResponse {
+  wallet: Wallet
+  stats: WalletStats
+}
+
+/** Leaderboard entry from /leaderboard */
 export interface LeaderboardEntry {
+  rank: number
   address: string
   trust_score: number
   source: string
   tx_count: number
   score_breakdown: ScoreBreakdown
+  first_seen_at: string
+  last_seen_at: string
+  role: WalletRole | null
 }
 
 /** Transaction record */
@@ -55,26 +79,39 @@ export interface Transaction {
   block_timestamp: string | null
 }
 
-/** Paginated response */
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  page: number
-  per_page: number
+/** Response from /wallet/:address/transactions */
+export interface TransactionsResponse {
+  transactions: Transaction[]
 }
 
-/** Stats response */
+/** Wallet source count from /stats */
+export interface WalletSourceCount {
+  source: string
+  count: number
+}
+
+/** Score distribution entry from /stats */
+export interface ScoreDistributionEntry {
+  tier: string
+  count: number
+  avg_score: number
+}
+
+/** Indexer state entry from /stats */
+export interface IndexerStateEntry {
+  id: number
+  [key: string]: unknown
+}
+
+/** Stats response from /stats */
 export interface Stats {
-  wallets: number
+  wallets: WalletSourceCount[]
   transactions: number
-  feedback_entries: number
+  feedback: number
+  score_distribution: ScoreDistributionEntry[]
   db_size_mb: string
-  version: string
-  score_distribution?: {
-    tier: string
-    count: number
-    avg_score: number
-  }[]
+  db_limit_mb: number
+  indexer_state: IndexerStateEntry[]
 }
 
 /** Client options */

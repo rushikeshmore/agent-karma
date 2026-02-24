@@ -86,11 +86,13 @@ npm run dev
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/` | Health check |
-| `GET` | `/wallets` | List wallets (paginated, filterable by `source`) |
+| `GET` | `/wallets` | List wallets (paginated, filterable by `source`, sortable by `score` or `tx_count`) |
+| `GET` | `/leaderboard` | Top wallets by trust score (filterable by `source`) |
 | `GET` | `/wallet/:address` | Wallet detail + transaction/feedback stats |
+| `GET` | `/score/:address` | Trust score (0-100) with tier + breakdown |
 | `GET` | `/wallet/:address/transactions` | Transaction history for a wallet |
 | `GET` | `/wallet/:address/feedback` | Feedback history for a wallet |
-| `GET` | `/stats` | Database size, wallet count, indexer state |
+| `GET` | `/stats` | Database size, wallet count, score distribution, indexer state |
 
 ### Example
 
@@ -117,8 +119,9 @@ npm run mcp
 
 | Tool | Description |
 |------|-------------|
-| `lookup_wallet` | Look up a wallet — source, agent ID, transaction count, first/last seen |
+| `lookup_wallet` | Look up a wallet — source, agent ID, trust score, transaction count |
 | `get_wallet_trust_signals` | Trust indicators — counterparty diversity, volume, feedback scores |
+| `get_trust_score` | Quick trust score check (0-100) with tier and breakdown |
 | `list_wallets` | Browse indexed wallets by source |
 | `agentkarma_stats` | Database statistics |
 
@@ -141,6 +144,18 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   }
 }
 ```
+
+## Deploy to Cloudflare Workers
+
+```bash
+# Set the DATABASE_URL secret (Neon connection string)
+npx wrangler secret put DATABASE_URL
+
+# Deploy
+npx wrangler deploy
+```
+
+The worker will be available at `https://agent-karma.<your-subdomain>.workers.dev`.
 
 ## Data Sources
 
@@ -220,18 +235,63 @@ npm run indexer:x402 -- --days 3 --limit 1000
 - **[Neon](https://neon.tech/)** — Serverless Postgres
 - **[Alchemy](https://www.alchemy.com/)** — Blockchain RPC provider
 
+## npm SDK
+
+Install the zero-dependency TypeScript client:
+
+```bash
+npm install agentkarma
+```
+
+```typescript
+import { AgentKarma } from 'agentkarma'
+
+const karma = new AgentKarma()
+
+// Check if a wallet is trustworthy
+const trusted = await karma.isHighTrust('0x...')
+
+// Get detailed score
+const score = await karma.getScore('0x...')
+console.log(score.trust_score, score.tier) // 84, "HIGH"
+
+// Get leaderboard
+const leaders = await karma.getLeaderboard({ limit: 10 })
+```
+
+## Trust Score Algorithm
+
+6 weighted signals computed per wallet (0-100 scale):
+
+| Signal | Weight | What It Measures |
+|--------|--------|------------------|
+| Loyalty | 32% | Repeat business ratio (Sybil-resistant) |
+| Activity | 20% | Transaction count (log10 scale) |
+| Diversity | 18% | Unique counterparties (log10 scale) |
+| Feedback | 15% | On-chain reputation (confidence-weighted) |
+| Age | 9% | Time since first on-chain appearance |
+| Recency | 6% | How recently active |
+
+**Bonus:** +5 for ERC-8004 registered agents. **Tiers:** HIGH (80+), MEDIUM (50+), LOW (20+), MINIMAL (<20).
+
+Based on: EigenTrust (Stanford 2003), zScore DeFi reputation, Gitcoin Passport, Arbitrum Sybil detection.
+
 ## Roadmap
 
 - [x] Phase 0.5: Validate RPC data access
 - [x] Phase 1a: ERC-8004 indexer (mints + feedback)
 - [x] Phase 1b: x402 indexer (Base USDC payments)
 - [x] Phase 1c: Database schema + migration
-- [x] Phase 1d: REST API
-- [x] Phase 1f: MCP server
-- [ ] Phase 1e: Public dashboard
-- [ ] Phase 2: Scoring engine
-- [ ] Phase 2: npm package (`agent-karma`)
-- [ ] Phase 2: Paid API tiers
+- [x] Phase 1d: REST API (8 endpoints)
+- [x] Phase 1e: Public dashboard (Next.js)
+- [x] Phase 1f: MCP server (5 tools)
+- [x] Phase 2a: Trust scoring engine (6-signal model)
+- [x] Phase 2b: Score API (/score, /leaderboard)
+- [x] Phase 2c: npm SDK (`agentkarma`)
+- [x] Phase 2d: Enhanced MCP (trust scores in all responses)
+- [x] Phase 2e: Dashboard v2 (scores, leaderboard, wallet detail)
+- [ ] Phase 3: Multi-chain expansion
+- [ ] Phase 3: Agent framework integrations (LangChain, CrewAI)
 
 ## License
 

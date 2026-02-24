@@ -2,3 +2,5 @@ name = "agent-karma"
 main = "src/worker.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
+
+# DATABASE_URL must be set via: npx wrangler secret put DATABASE_URL

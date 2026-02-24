@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -39,6 +40,7 @@
   },
   "homepage": "https://github.com/rushikeshmore/agent-karma",
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

@@ -6,8 +6,10 @@ function requireEnv(name: string): string {
   return value
 }
 
+const rawPort = Number(process.env.PORT ?? 3000)
+
 export const env = {
   alchemyKey: requireEnv('alchemy_key'),
   databaseUrl: requireEnv('neon_db_key'),
-  port: Number(process.env.PORT ?? 3000),
+  port: Number.isNaN(rawPort) || rawPort <= 0 || rawPort > 65535 ? 3000 : rawPort,
 }
