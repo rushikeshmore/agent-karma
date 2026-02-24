@@ -15,4 +15,12 @@ export type {
   ScoreDistributionEntry,
   IndexerStateEntry,
   Stats,
+  BatchScoreEntry,
+  BatchScoresResponse,
+  ScoreHistoryEntry,
+  ScoreHistoryResponse,
+  SubmitFeedbackParams,
+  FeedbackResponse,
+  ListWalletsOptions,
+  ListWalletsResponse,
 } from './types.js'

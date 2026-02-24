@@ -91,6 +91,29 @@ async function migrate() {
   await sql`ALTER TABLE wallets ADD COLUMN IF NOT EXISTS role VARCHAR(10)`
   console.log('  wallets.role column ready')
 
+  // --- v0.3: score_history table ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS score_history (
+      id              SERIAL PRIMARY KEY,
+      address         VARCHAR(42) NOT NULL,
+      trust_score     INTEGER NOT NULL,
+      score_breakdown JSONB NOT NULL,
+      computed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_sh_address ON score_history(address)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_sh_computed ON score_history(computed_at)`
+  console.log('  score_history table ready')
+
+  // --- v0.3: needs_rescore flag for incremental scoring ---
+  await sql`ALTER TABLE wallets ADD COLUMN IF NOT EXISTS needs_rescore BOOLEAN DEFAULT true`
+  console.log('  wallets.needs_rescore column ready')
+
+  // --- v0.3: feedback source + target_address for API-submitted feedback ---
+  await sql`ALTER TABLE feedback ADD COLUMN IF NOT EXISTS source VARCHAR(10) DEFAULT 'chain'`
+  await sql`ALTER TABLE feedback ADD COLUMN IF NOT EXISTS target_address VARCHAR(42)`
+  console.log('  feedback.source + target_address columns ready')
+
   // --- check DB size ---
   const sizeResult = await sql`SELECT pg_database_size(current_database()) as size`
   const sizeMB = (Number(sizeResult[0].size) / 1024 / 1024).toFixed(1)

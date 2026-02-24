@@ -177,7 +177,7 @@ server.registerTool(
   'get_trust_score',
   {
     description:
-      'Get the trust score (0-100) for an AI agent wallet. Returns a weighted score based on: repeat business (32%), transaction activity (20%), counterparty diversity (18%), on-chain feedback (15%), account age (9%), and recency (6%). ERC-8004 registered agents get a +5 bonus. Use this to quickly assess if a wallet is trustworthy before transacting.',
+      'Get the trust score (0-100) for an AI agent wallet. Returns a weighted score based on: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), and age (5%). ERC-8004 registered agents get a +5 bonus. Use this to quickly assess if a wallet is trustworthy before transacting.',
     inputSchema: {
       address: z
         .string()
@@ -226,6 +226,58 @@ server.registerTool(
           tx_count: Number(w.tx_count ?? 0),
           erc8004_registered: w.erc8004_id !== null,
         }, null, 2),
+      }],
+    }
+  }
+)
+
+// --- Tool 3b: batch_trust_scores ---
+server.registerTool(
+  'batch_trust_scores',
+  {
+    description:
+      'Look up trust scores for multiple wallet addresses at once (max 100). Returns scores for found wallets and a list of addresses not found.',
+    inputSchema: {
+      addresses: z
+        .array(z.string().regex(/^0x[a-fA-F0-9]{40}$/))
+        .max(100)
+        .describe('Array of EVM wallet addresses (0x...)'),
+    },
+  },
+  async ({ addresses }) => {
+    const normalized = addresses.map((a: string) => a.toLowerCase())
+    const wallets = await sql`
+      SELECT address, trust_score, score_breakdown, scored_at, source, tx_count, erc8004_id
+      FROM wallets WHERE address = ANY(${normalized})
+    `
+
+    const found = new Map(wallets.map((w: any) => [w.address, w]))
+    const scores = []
+    const notFound = []
+
+    for (const addr of normalized) {
+      const w = found.get(addr)
+      if (w) {
+        const tier =
+          w.trust_score >= 80 ? 'HIGH' :
+          w.trust_score >= 50 ? 'MEDIUM' :
+          w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
+        scores.push({
+          address: w.address,
+          trust_score: w.trust_score,
+          tier,
+          breakdown: w.score_breakdown,
+          scored_at: w.scored_at,
+        })
+      } else {
+        notFound.push(addr)
+      }
+    }
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: JSON.stringify({ scores, not_found: notFound }, null, 2),
       }],
     }
   }

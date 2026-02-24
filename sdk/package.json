@@ -1,6 +1,6 @@
 {
   "name": "agentkarma",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Trust scores for AI agent wallets — one-line credit check before transacting",
   "type": "module",
   "main": "./dist/index.js",

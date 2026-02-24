@@ -5,6 +5,12 @@ import type {
   LeaderboardEntry,
   TransactionsResponse,
   Stats,
+  BatchScoresResponse,
+  ScoreHistoryResponse,
+  SubmitFeedbackParams,
+  FeedbackResponse,
+  ListWalletsOptions,
+  ListWalletsResponse,
 } from './types.js'
 
 const DEFAULT_BASE_URL = 'https://agent-karma.rushikeshmore271.workers.dev'
@@ -41,6 +47,41 @@ export class AgentKarma {
         const body = await res.text().catch(() => '')
         throw new AgentKarmaError(
           `HTTP ${res.status}: ${body || res.statusText}`,
+          res.status,
+        )
+      }
+
+      return (await res.json()) as T
+    } catch (err: any) {
+      if (err instanceof AgentKarmaError) throw err
+      if (err.name === 'AbortError') {
+        throw new AgentKarmaError('Request timed out', 0)
+      }
+      throw new AgentKarmaError(err.message ?? 'Network error', 0)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeout)
+
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new AgentKarmaError(
+          `HTTP ${res.status}: ${text || res.statusText}`,
           res.status,
         )
       }
@@ -143,6 +184,75 @@ export class AgentKarma {
    */
   async getStats(): Promise<Stats> {
     return this.fetch<Stats>('/stats')
+  }
+
+  /**
+   * Get trust scores for multiple wallet addresses at once.
+   *
+   * @example
+   * ```ts
+   * const { scores, not_found } = await karma.batchScores(['0xABC...', '0xDEF...'])
+   * ```
+   */
+  async batchScores(addresses: string[]): Promise<BatchScoresResponse> {
+    const normalized = addresses.map(assertAddress)
+    return this.post<BatchScoresResponse>('/wallets/batch-scores', { addresses: normalized })
+  }
+
+  /**
+   * Get the score history for a wallet address.
+   *
+   * @example
+   * ```ts
+   * const { history } = await karma.getScoreHistory('0xABC...')
+   * ```
+   */
+  async getScoreHistory(
+    address: string,
+    options?: { limit?: number },
+  ): Promise<ScoreHistoryResponse> {
+    const limit = options?.limit ?? 25
+    return this.fetch<ScoreHistoryResponse>(
+      `/wallet/${assertAddress(address)}/score-history?limit=${limit}`,
+    )
+  }
+
+  /**
+   * Submit feedback for a wallet's transaction.
+   *
+   * @example
+   * ```ts
+   * const { feedback_id } = await karma.submitFeedback({
+   *   address: '0xABC...',
+   *   tx_hash: '0x123...',
+   *   rating: 5,
+   *   comment: 'Fast and reliable',
+   * })
+   * ```
+   */
+  async submitFeedback(params: SubmitFeedbackParams): Promise<FeedbackResponse> {
+    assertAddress(params.address)
+    return this.post<FeedbackResponse>('/feedback', params)
+  }
+
+  /**
+   * List indexed wallets with optional filters.
+   *
+   * @example
+   * ```ts
+   * const { wallets, total } = await karma.listWallets({ limit: 10, sort: 'score' })
+   * ```
+   */
+  async listWallets(options?: ListWalletsOptions): Promise<ListWalletsResponse> {
+    const params = new URLSearchParams()
+    if (options?.limit) params.set('limit', String(options.limit))
+    if (options?.offset) params.set('offset', String(options.offset))
+    if (options?.source) params.set('source', options.source)
+    if (options?.sort) params.set('sort', options.sort)
+    if (options?.scoreMin != null) params.set('score_min', String(options.scoreMin))
+    if (options?.scoreMax != null) params.set('score_max', String(options.scoreMax))
+    const qs = params.toString()
+    return this.fetch<ListWalletsResponse>(`/wallets${qs ? '?' + qs : ''}`)
   }
 }
 
