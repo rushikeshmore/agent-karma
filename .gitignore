@@ -74,6 +74,9 @@ web_modules/
 .cache
 .parcel-cache
 
+# Internal dev log (not part of open source repo)
+DEVLOG.md
+
 # Website (deployed separately, not part of open source repo)
 packages/dashboard/
 
