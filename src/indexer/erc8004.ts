@@ -40,6 +40,26 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      const status = err?.status ?? err?.cause?.status
+      const isRetryable = status === 429 || status === 502 || status === 503 ||
+        err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'UND_ERR_SOCKET'
+      if (isRetryable && attempt < maxRetries) {
+        const delay = 1000 * Math.pow(2, attempt - 1)
+        console.log(`  [${label}] Retryable error (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`)
+        await sleep(delay)
+      } else {
+        throw err
+      }
+    }
+  }
+  throw new Error('unreachable')
+}
+
 // ============================
 // Identity Indexer (mint events)
 // ============================
@@ -67,7 +87,7 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
     const batchEnd = current + BATCH_SIZE - 1n > toBlock ? toBlock : current + BATCH_SIZE - 1n
 
     trackCU('eth_getLogs')
-    const logs = await cfg.client.getLogs({
+    const logs = await withRetry(() => cfg.client.getLogs({
       address: IDENTITY_REGISTRY,
       event: parseAbiItem(
         'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
@@ -75,7 +95,7 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
       args: { from: '0x0000000000000000000000000000000000000000' as `0x${string}` },
       fromBlock: current,
       toBlock: batchEnd,
-    })
+    }), `mints/${cfg.label}`)
 
     if (logs.length > 0) {
       // Deduplicate by address — same wallet can mint multiple agent NFTs in one batch
@@ -94,14 +114,18 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
       }
       const rows = [...seen.values()]
 
-      await sql`
-        INSERT INTO wallets ${sql(rows, 'address', 'source', 'chain', 'erc8004_id', 'first_seen_block')}
-        ON CONFLICT (address) DO UPDATE SET
-          source = CASE WHEN wallets.source = 'x402' THEN 'both' ELSE wallets.source END,
-          erc8004_id = COALESCE(wallets.erc8004_id, EXCLUDED.erc8004_id),
-          last_seen_at = NOW(),
-          needs_rescore = true
-      `
+      try {
+        await sql`
+          INSERT INTO wallets ${sql(rows, 'address', 'source', 'chain', 'erc8004_id', 'first_seen_block')}
+          ON CONFLICT (address) DO UPDATE SET
+            source = CASE WHEN wallets.source = 'x402' THEN 'both' ELSE wallets.source END,
+            erc8004_id = COALESCE(wallets.erc8004_id, EXCLUDED.erc8004_id),
+            last_seen_at = NOW(),
+            needs_rescore = true
+        `
+      } catch (err: any) {
+        console.error(`  [mints/${cfg.label}] Insert failed at block ${current}, skipping batch: ${err.message}`)
+      }
     }
 
     totalFound += logs.length
@@ -148,14 +172,14 @@ async function indexFeedback(fromBlock: bigint, toBlock: bigint, cfg: ChainConfi
     const batchEnd = current + BATCH_SIZE - 1n > toBlock ? toBlock : current + BATCH_SIZE - 1n
 
     trackCU('eth_getLogs')
-    const logs = await cfg.client.getLogs({
+    const logs = await withRetry(() => cfg.client.getLogs({
       address: REPUTATION_REGISTRY,
       event: parseAbiItem(
         'event NewFeedback(uint256 indexed agentId, address indexed clientAddress, uint64 feedbackIndex, int128 value, uint8 valueDecimals, string indexed indexedTag1, string tag1, string tag2, string endpoint, string feedbackURI, bytes32 feedbackHash)'
       ),
       fromBlock: current,
       toBlock: batchEnd,
-    })
+    }), `feedback/${cfg.label}`)
 
     if (logs.length > 0) {
       const rows = logs.map((log) => ({
@@ -173,14 +197,18 @@ async function indexFeedback(fromBlock: bigint, toBlock: bigint, cfg: ChainConfi
         tx_hash: log.transactionHash,
       }))
 
-      await sql`
-        INSERT INTO feedback ${sql(rows,
-          'agent_id', 'client_address', 'feedback_index', 'value', 'value_decimals',
-          'tag1', 'tag2', 'endpoint', 'feedback_uri', 'feedback_hash',
-          'block_number', 'tx_hash'
-        )}
-        ON CONFLICT (tx_hash, feedback_index) DO NOTHING
-      `
+      try {
+        await sql`
+          INSERT INTO feedback ${sql(rows,
+            'agent_id', 'client_address', 'feedback_index', 'value', 'value_decimals',
+            'tag1', 'tag2', 'endpoint', 'feedback_uri', 'feedback_hash',
+            'block_number', 'tx_hash'
+          )}
+          ON CONFLICT (tx_hash, feedback_index) DO NOTHING
+        `
+      } catch (err: any) {
+        console.error(`  [feedback/${cfg.label}] Insert failed at block ${current}, skipping batch: ${err.message}`)
+      }
     }
 
     totalFound += logs.length

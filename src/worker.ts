@@ -63,7 +63,8 @@ function computeTier(score: number): string {
 // Batch scores — look up multiple wallets at once
 app.post('/wallets/batch-scores', async (c) => {
   const sql = getSQL(c)
-  const body = await c.req.json()
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
   const { addresses } = body
 
   if (!Array.isArray(addresses) || addresses.length === 0) {
@@ -103,7 +104,8 @@ app.post('/wallets/batch-scores', async (c) => {
 // Submit feedback for a transaction
 app.post('/feedback', async (c) => {
   const sql = getSQL(c)
-  const body = await c.req.json()
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
   const { address, tx_hash, rating, comment } = body
 
   const validAddress = typeof address === 'string' ? validateAddress(address) : null

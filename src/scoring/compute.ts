@@ -79,7 +79,7 @@ export function loyaltyScore(txCount: number, uniqueCounterparties: number): num
 
   // Sybil check: unrealistically high loyalty with very few counterparties
   // e.g. 100 txns with only 2 partners = suspicious ring
-  if (avgTxPerPartner > 20 && uniqueCounterparties < 3) {
+  if (avgTxPerPartner >= 20 && uniqueCounterparties < 3) {
     return Math.min(40, ((avgTxPerPartner - 1) / 4) * 100)
   }
 
@@ -360,27 +360,35 @@ async function main() {
   }
   console.log(`  ${results.length} score snapshots saved`)
 
-  // Bulk UPDATE using parameterized queries — one SQL statement per batch (not per row)
+  // Bulk UPDATE using unnest arrays — one SQL statement per batch (not per row)
   console.log(`Writing scores in bulk batches of ${BATCH_SIZE}...`)
   let written = 0
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
     const batch = results.slice(i, i + BATCH_SIZE)
 
+    const addresses = batch.map(b => b.address)
+    const scores = batch.map(b => b.score)
+    const breakdowns = batch.map(b => b.breakdown)
+    const roles = batch.map(b => b.role)
+
     let retries = 3
     while (retries > 0) {
       try {
-        // Use parameterized queries for safe bulk updates
-        for (const b of batch) {
-          await sql`
-            UPDATE wallets SET
-              trust_score = ${b.score},
-              score_breakdown = ${b.breakdown}::jsonb,
-              scored_at = NOW(),
-              role = ${b.role},
-              needs_rescore = false
-            WHERE address = ${b.address}
-          `
-        }
+        await sql`
+          UPDATE wallets AS w SET
+            trust_score = v.trust_score,
+            score_breakdown = v.score_breakdown::jsonb,
+            scored_at = NOW(),
+            role = v.role,
+            needs_rescore = false
+          FROM unnest(
+            ${addresses}::varchar[],
+            ${scores}::int[],
+            ${breakdowns}::text[],
+            ${roles}::varchar[]
+          ) AS v(address, trust_score, score_breakdown, role)
+          WHERE w.address = v.address
+        `
         break // success
       } catch (err: any) {
         retries--

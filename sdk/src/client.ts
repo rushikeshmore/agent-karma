@@ -231,8 +231,8 @@ export class AgentKarma {
    * ```
    */
   async submitFeedback(params: SubmitFeedbackParams): Promise<FeedbackResponse> {
-    assertAddress(params.address)
-    return this.post<FeedbackResponse>('/feedback', params)
+    const normalized = assertAddress(params.address)
+    return this.post<FeedbackResponse>('/feedback', { ...params, address: normalized })
   }
 
   /**

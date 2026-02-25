@@ -26,7 +26,7 @@ import sql from '../db/client.js'
 
 const server = new McpServer({
   name: 'agent-karma',
-  version: '0.1.0',
+  version: '0.3.0',
   description: 'Credit bureau for AI agent wallets. Look up trust data for any wallet address.',
 })
 
@@ -55,7 +55,11 @@ server.registerTool(
 
     const w = wallet[0]
     const txCount = await sql`SELECT COUNT(*) as count FROM transactions WHERE payer = ${addr} OR recipient = ${addr}`
-    const feedbackCount = await sql`SELECT COUNT(*) as count FROM feedback WHERE client_address = ${addr}`
+    const feedbackCount = await sql`
+      SELECT COUNT(*) as count FROM feedback f
+      JOIN wallets w ON f.agent_id = w.erc8004_id
+      WHERE w.address = ${addr}
+    `
 
     return {
       content: [{
@@ -121,8 +125,9 @@ server.registerTool(
       SELECT
         COUNT(*) as total_feedback,
         AVG(value::numeric) as avg_value
-      FROM feedback
-      WHERE client_address = ${addr}
+      FROM feedback f
+      JOIN wallets w ON f.agent_id = w.erc8004_id
+      WHERE w.address = ${addr}
     `
 
     // Recent transactions (last 5)
@@ -207,7 +212,7 @@ server.registerTool(
     }
 
     const w = wallet[0]
-    const tierLabel =
+    const tierLabel = w.trust_score == null ? null :
       w.trust_score >= 80 ? 'HIGH' :
       w.trust_score >= 50 ? 'MEDIUM' :
       w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
@@ -258,7 +263,7 @@ server.registerTool(
     for (const addr of normalized) {
       const w = found.get(addr)
       if (w) {
-        const tier =
+        const tier = w.trust_score == null ? null :
           w.trust_score >= 80 ? 'HIGH' :
           w.trust_score >= 50 ? 'MEDIUM' :
           w.trust_score >= 20 ? 'LOW' : 'MINIMAL'

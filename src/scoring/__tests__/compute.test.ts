@@ -165,6 +165,12 @@ describe('loyaltyScore', () => {
     expect(score).toBeLessThanOrEqual(40)
   })
 
+  it('applies Sybil cap at exactly 20 avg with < 3 counterparties', () => {
+    // 40 txns / 2 partners = 20 avg, only 2 counterparties → capped at 40
+    const score = loyaltyScore(40, 2)
+    expect(score).toBeLessThanOrEqual(40)
+  })
+
   it('does not apply Sybil cap when counterparties >= 3', () => {
     // 60 txns / 3 partners = 20 avg → not capped (counterparties >= 3)
     const score = loyaltyScore(60, 3)
