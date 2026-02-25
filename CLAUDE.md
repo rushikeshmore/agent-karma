@@ -30,7 +30,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - ReputationRegistry: `0x8004BAa1...` (Ethereum block 24339925, Base block ~26000000)
 - USDC on Base: `0x833589fC...`
 
-## API Endpoints (v0.4.0)
+## API Endpoints (v0.5.0)
 - `GET /` — health check
 - `GET /score/:address` — trust score with tier + breakdown
 - `GET /wallet/:address` — full wallet detail + stats
@@ -43,6 +43,9 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `POST /wallets/batch-scores` — batch lookup (max 100)
 - `POST /feedback` — submit feedback for a transaction
 - `POST /api-keys` — generate a free API key (1000 req/day)
+- `POST /webhooks` — register a webhook for score change notifications (requires API key)
+- `GET /webhooks` — list your registered webhooks (requires API key)
+- `DELETE /webhooks/:id` — delete a webhook (requires API key)
 
 ## MCP Tools (6)
 - `lookup_wallet` — wallet info + trust score + stats
@@ -74,6 +77,14 @@ Every API route exists in BOTH:
 - `npm test` runs both scoring + SDK tests (75 total)
 - Scoring: 49 tests (all 7 signals, edge cases, NaN guards, Sybil cap)
 - SDK: 26 tests (all methods, error handling, param mapping)
+
+## Webhooks
+- Score change notifications via HTTP POST to registered URLs
+- Events: `score_change` (any change), `score_drop`, `score_rise`
+- Optional: filter by specific wallet_address or threshold crossing
+- Fired after scoring engine runs (`npm run score`)
+- Max 25 webhooks per API key
+- Payload: `{ event, address, old_score, new_score, tier, threshold, timestamp }`
 
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)

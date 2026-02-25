@@ -117,12 +117,63 @@ export interface Stats {
   indexer_state: IndexerStateEntry[]
 }
 
+/** Webhook event types */
+export type WebhookEventType = 'score_change' | 'score_drop' | 'score_rise'
+
+/** Webhook record */
+export interface Webhook {
+  id: number
+  url: string
+  wallet_address: string | null
+  event_type: WebhookEventType
+  threshold: number | null
+  is_active: boolean
+  created_at: string
+}
+
+/** Params for registering a webhook */
+export interface RegisterWebhookParams {
+  url: string
+  wallet_address?: string
+  event_type?: WebhookEventType
+  threshold?: number
+}
+
+/** Response from POST /webhooks */
+export interface RegisterWebhookResponse {
+  webhook: Webhook
+}
+
+/** Response from GET /webhooks */
+export interface ListWebhooksResponse {
+  webhooks: Webhook[]
+}
+
+/** Response from DELETE /webhooks/:id */
+export interface DeleteWebhookResponse {
+  deleted: boolean
+  id: number
+}
+
+/** Webhook payload fired on score changes */
+export interface WebhookPayload {
+  event: WebhookEventType
+  address: string
+  old_score: number | null
+  new_score: number
+  tier: ScoreTier
+  threshold: number | null
+  timestamp: string
+}
+
 /** Client options */
 export interface AgentKarmaOptions {
   /** API base URL. Defaults to the public API. */
   baseUrl?: string
   /** Request timeout in ms. Default: 10000 */
   timeout?: number
+  /** API key for authenticated requests (higher rate limits, webhooks) */
+  apiKey?: string
 }
 
 /** Batch score entry */

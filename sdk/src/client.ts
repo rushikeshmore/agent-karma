@@ -11,6 +11,10 @@ import type {
   FeedbackResponse,
   ListWalletsOptions,
   ListWalletsResponse,
+  RegisterWebhookParams,
+  RegisterWebhookResponse,
+  ListWebhooksResponse,
+  DeleteWebhookResponse,
 } from './types.js'
 
 const DEFAULT_BASE_URL = 'https://agent-karma.rushikeshmore271.workers.dev'
@@ -27,10 +31,18 @@ function assertAddress(address: string): string {
 export class AgentKarma {
   private baseUrl: string
   private timeout: number
+  private apiKey: string | undefined
 
   constructor(options: AgentKarmaOptions = {}) {
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, '')
     this.timeout = options.timeout ?? DEFAULT_TIMEOUT
+    this.apiKey = options.apiKey
+  }
+
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { 'Accept': 'application/json' }
+    if (this.apiKey) headers['x-api-key'] = this.apiKey
+    return headers
   }
 
   private async fetch<T>(path: string): Promise<T> {
@@ -40,7 +52,7 @@ export class AgentKarma {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
         signal: controller.signal,
-        headers: { 'Accept': 'application/json' },
+        headers: this.getHeaders(),
       })
 
       if (!res.ok) {
@@ -71,10 +83,7 @@ export class AgentKarma {
       const res = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: { ...this.getHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
 
@@ -253,6 +262,69 @@ export class AgentKarma {
     if (options?.scoreMax != null) params.set('score_max', String(options.scoreMax))
     const qs = params.toString()
     return this.fetch<ListWalletsResponse>(`/wallets${qs ? '?' + qs : ''}`)
+  }
+
+  private async delete<T>(path: string): Promise<T> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeout)
+
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        method: 'DELETE',
+        signal: controller.signal,
+        headers: this.getHeaders(),
+      })
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new AgentKarmaError(
+          `HTTP ${res.status}: ${text || res.statusText}`,
+          res.status,
+        )
+      }
+
+      return (await res.json()) as T
+    } catch (err: any) {
+      if (err instanceof AgentKarmaError) throw err
+      if (err.name === 'AbortError') {
+        throw new AgentKarmaError('Request timed out', 0)
+      }
+      throw new AgentKarmaError(err.message ?? 'Network error', 0)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  /**
+   * Register a webhook to get notified on score changes.
+   * Requires an API key (pass via constructor options).
+   *
+   * @example
+   * ```ts
+   * const karma = new AgentKarma({ apiKey: 'ak_...' })
+   * const { webhook } = await karma.registerWebhook({
+   *   url: 'https://myapp.com/webhook',
+   *   event_type: 'score_drop',
+   *   threshold: 50,
+   * })
+   * ```
+   */
+  async registerWebhook(params: RegisterWebhookParams): Promise<RegisterWebhookResponse> {
+    return this.post<RegisterWebhookResponse>('/webhooks', params)
+  }
+
+  /**
+   * List all webhooks registered under your API key.
+   */
+  async listWebhooks(): Promise<ListWebhooksResponse> {
+    return this.fetch<ListWebhooksResponse>('/webhooks')
+  }
+
+  /**
+   * Delete a webhook by ID.
+   */
+  async deleteWebhook(id: number): Promise<DeleteWebhookResponse> {
+    return this.delete<DeleteWebhookResponse>(`/webhooks/${id}`)
   }
 }
 
