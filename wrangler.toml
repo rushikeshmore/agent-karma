@@ -4,3 +4,14 @@ compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
 
 # DATABASE_URL must be set via: npx wrangler secret put DATABASE_URL
+
+# Rate limiting: 25 requests per 10 seconds per IP (burst protection)
+# Period can only be 10 or 60 seconds. 25/10s = 150/min max burst.
+# Catches scrapers/bots. Legitimate API usage won't hit this.
+[[ratelimits]]
+binding = "RATE_LIMITER"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 25
+period = 10

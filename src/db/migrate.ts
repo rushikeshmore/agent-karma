@@ -157,6 +157,7 @@ async function migrate() {
   `
   await sql`CREATE INDEX IF NOT EXISTS idx_webhooks_api_key ON webhooks(api_key_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_webhooks_wallet ON webhooks(wallet_address)`
+  await sql`ALTER TABLE webhooks ADD COLUMN IF NOT EXISTS failure_count INTEGER NOT NULL DEFAULT 0`
   console.log('  webhooks table ready')
 
   // --- check DB size ---
