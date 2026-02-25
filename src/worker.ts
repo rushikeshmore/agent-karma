@@ -233,37 +233,62 @@ app.get('/wallets', async (c) => {
   const sql = getSQL(c)
   const limit = Math.min(safeInt(c.req.query('limit'), 50), 100)
   const offset = safeInt(c.req.query('offset'), 0)
-  const source = validateSource(c.req.query('source')) ?? null
+  const source = validateSource(c.req.query('source'))
   const sort = c.req.query('sort') === 'score' ? 'trust_score' : 'tx_count'
   const scoreMin = c.req.query('score_min') != null ? safeInt(c.req.query('score_min'), 0) : null
   const scoreMax = c.req.query('score_max') != null ? safeInt(c.req.query('score_max'), 100) : null
 
-  // neon() doesn't support sql() identifier helper, use conditional queries
-  // Use NULL-coalescing pattern: (column = $val OR $val IS NULL) to avoid combinatorial explosion
-  const wallets = sort === 'trust_score'
-    ? await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
-        FROM wallets
-        WHERE (source = ${source} OR ${source} IS NULL)
-          AND (trust_score >= ${scoreMin} OR ${scoreMin} IS NULL)
-          AND (trust_score <= ${scoreMax} OR ${scoreMax} IS NULL)
-        ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
-      `
-    : await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role
-        FROM wallets
-        WHERE (source = ${source} OR ${source} IS NULL)
-          AND (trust_score >= ${scoreMin} OR ${scoreMin} IS NULL)
-          AND (trust_score <= ${scoreMax} OR ${scoreMax} IS NULL)
-        ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}
-      `
+  // neon() HTTP driver doesn't handle NULL-coalescing pattern (col = $1 OR $1 IS NULL).
+  // Build WHERE clauses and use parameterized queries per combination.
+  // Sort uses hardcoded ternary — no user input reaches SQL identifiers.
+  let wallets
+  let total
 
-  const total = await sql`
-    SELECT COUNT(*)::int as count FROM wallets
-    WHERE (source = ${source} OR ${source} IS NULL)
-      AND (trust_score >= ${scoreMin} OR ${scoreMin} IS NULL)
-      AND (trust_score <= ${scoreMax} OR ${scoreMax} IS NULL)
-  `
+  if (source) {
+    if (scoreMin !== null && scoreMax !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin} AND trust_score <= ${scoreMax} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin} AND trust_score <= ${scoreMax} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin} AND trust_score <= ${scoreMax}`
+    } else if (scoreMin !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE source = ${source} AND trust_score >= ${scoreMin}`
+    } else if (scoreMax !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score <= ${scoreMax} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} AND trust_score <= ${scoreMax} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE source = ${source} AND trust_score <= ${scoreMax}`
+    } else {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE source = ${source} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE source = ${source}`
+    }
+  } else {
+    if (scoreMin !== null && scoreMax !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score >= ${scoreMin} AND trust_score <= ${scoreMax} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score >= ${scoreMin} AND trust_score <= ${scoreMax} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE trust_score >= ${scoreMin} AND trust_score <= ${scoreMax}`
+    } else if (scoreMin !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score >= ${scoreMin} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score >= ${scoreMin} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE trust_score >= ${scoreMin}`
+    } else if (scoreMax !== null) {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score <= ${scoreMax} ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets WHERE trust_score <= ${scoreMax} ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets WHERE trust_score <= ${scoreMax}`
+    } else {
+      wallets = sort === 'trust_score'
+        ? await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets ORDER BY trust_score DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`
+        : await sql`SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown, scored_at, first_seen_at, last_seen_at, role FROM wallets ORDER BY tx_count DESC LIMIT ${limit} OFFSET ${offset}`
+      total = await sql`SELECT COUNT(*)::int as count FROM wallets`
+    }
+  }
 
   return c.json({ wallets, total: total[0].count, limit, offset, sort })
 })
