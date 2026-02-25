@@ -9,9 +9,9 @@ compatibility_flags = ["nodejs_compat"]
 # Period can only be 10 or 60 seconds. 25/10s = 150/min max burst.
 # Catches scrapers/bots. Legitimate API usage won't hit this.
 [[ratelimits]]
-binding = "RATE_LIMITER"
+name = "RATE_LIMITER"
 namespace_id = "1001"
 
-[ratelimits.simple]
-limit = 25
-period = 10
+  [ratelimits.simple]
+  limit = 25
+  period = 10
