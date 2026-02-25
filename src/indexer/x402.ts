@@ -41,6 +41,26 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      const status = err?.status ?? err?.cause?.status
+      const isRetryable = status === 429 || status === 502 || status === 503 ||
+        err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'UND_ERR_SOCKET'
+      if (isRetryable && attempt < maxRetries) {
+        const delay = 1000 * Math.pow(2, attempt - 1)
+        console.log(`  [${label}] Retryable error (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`)
+        await sleep(delay)
+      } else {
+        throw err
+      }
+    }
+  }
+  throw new Error('unreachable')
+}
+
 async function indexX402(fromBlock: bigint, toBlock: bigint): Promise<{ txns: number; wallets: number }> {
   let totalTxns = 0
   let newWallets = 0
@@ -58,14 +78,14 @@ async function indexX402(fromBlock: bigint, toBlock: bigint): Promise<{ txns: nu
 
     // Get AuthorizationUsed events in this block range
     trackCU('eth_getLogs')
-    const authLogs = await baseClient.getLogs({
+    const authLogs = await withRetry(() => baseClient.getLogs({
       address: BASE_USDC,
       event: parseAbiItem(
         'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)'
       ),
       fromBlock: current,
       toBlock: batchEnd,
-    })
+    }), 'x402')
 
     if (authLogs.length > 0) {
       // Group by txHash to avoid duplicate receipt fetches
@@ -73,10 +93,10 @@ async function indexX402(fromBlock: bigint, toBlock: bigint): Promise<{ txns: nu
 
       for (const txHash of txHashes) {
         trackCU('eth_getTransactionReceipt')
-        const receipt = await baseClient.getTransactionReceipt({ hash: txHash })
+        const receipt = await withRetry(() => baseClient.getTransactionReceipt({ hash: txHash }), 'x402')
 
         trackCU('eth_getTransaction')
-        const tx = await baseClient.getTransaction({ hash: txHash })
+        const tx = await withRetry(() => baseClient.getTransaction({ hash: txHash }), 'x402')
 
         const isFacilitator = KNOWN_FACILITATORS.has(tx.from.toLowerCase())
 
@@ -88,46 +108,50 @@ async function indexX402(fromBlock: bigint, toBlock: bigint): Promise<{ txns: nu
         )
 
         for (const t of transfers) {
-          const payer = ('0x' + t.topics[1]!.slice(26)).toLowerCase()
-          const recipient = ('0x' + t.topics[2]!.slice(26)).toLowerCase()
-          const amountRaw = BigInt(t.data)
-          const amountUSDC = Number(formatUnits(amountRaw, 6))
+          try {
+            const payer = ('0x' + t.topics[1]!.slice(26)).toLowerCase()
+            const recipient = ('0x' + t.topics[2]!.slice(26)).toLowerCase()
+            const amountRaw = BigInt(t.data)
+            const amountUSDC = Number(formatUnits(amountRaw, 6))
 
-          // Get the authorizer for this tx
-          const authLog = authLogs.find((a) => a.transactionHash === txHash)
+            // Get the authorizer for this tx
+            const authLog = authLogs.find((a) => a.transactionHash === txHash)
 
-          // Insert transaction
-          await sql`
-            INSERT INTO transactions (
-              tx_hash, block_number, chain, authorizer, payer, recipient,
-              amount_raw, amount_usdc, facilitator, is_x402
-            )
-            VALUES (
-              ${txHash}, ${Number(receipt.blockNumber)}, 'base',
-              ${authLog?.args.authorizer?.toLowerCase() ?? payer},
-              ${payer}, ${recipient},
-              ${amountRaw.toString()}, ${amountUSDC},
-              ${tx.from.toLowerCase()}, ${isFacilitator}
-            )
-            ON CONFLICT (tx_hash, chain) DO NOTHING
-          `
-
-          // Upsert wallets for both parties
-          for (const addr of [payer, recipient]) {
-            const result = await sql`
-              INSERT INTO wallets (address, source, chain, first_seen_block, first_seen_at, last_seen_at, tx_count)
-              VALUES (${addr}, 'x402', 'base', ${Number(receipt.blockNumber)}, NOW(), NOW(), 1)
-              ON CONFLICT (address) DO UPDATE SET
-                source = CASE WHEN wallets.source = 'erc8004' THEN 'both' ELSE wallets.source END,
-                last_seen_at = NOW(),
-                tx_count = wallets.tx_count + 1,
-                needs_rescore = true
-              RETURNING (xmax = 0) as is_new
+            // Insert transaction
+            await sql`
+              INSERT INTO transactions (
+                tx_hash, block_number, chain, authorizer, payer, recipient,
+                amount_raw, amount_usdc, facilitator, is_x402
+              )
+              VALUES (
+                ${txHash}, ${Number(receipt.blockNumber)}, 'base',
+                ${authLog?.args.authorizer?.toLowerCase() ?? payer},
+                ${payer}, ${recipient},
+                ${amountRaw.toString()}, ${amountUSDC},
+                ${tx.from.toLowerCase()}, ${isFacilitator}
+              )
+              ON CONFLICT (tx_hash, chain) DO NOTHING
             `
-            if (result[0]?.is_new) newWallets++
-          }
 
-          totalTxns++
+            // Upsert wallets for both parties
+            for (const addr of [payer, recipient]) {
+              const result = await sql`
+                INSERT INTO wallets (address, source, chain, first_seen_block, first_seen_at, last_seen_at, tx_count)
+                VALUES (${addr}, 'x402', 'base', ${Number(receipt.blockNumber)}, NOW(), NOW(), 1)
+                ON CONFLICT (address) DO UPDATE SET
+                  source = CASE WHEN wallets.source = 'erc8004' THEN 'both' ELSE wallets.source END,
+                  last_seen_at = NOW(),
+                  tx_count = wallets.tx_count + 1,
+                  needs_rescore = true
+                RETURNING (xmax = 0) as is_new
+              `
+              if (result[0]?.is_new) newWallets++
+            }
+
+            totalTxns++
+          } catch (err: any) {
+            console.error(`  [x402] Insert failed for tx ${txHash}, skipping: ${err.message}`)
+          }
         }
 
         await sleep(RECEIPT_DELAY_MS)

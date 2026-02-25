@@ -100,8 +100,9 @@ export interface ScoreDistributionEntry {
 
 /** Indexer state entry from /stats */
 export interface IndexerStateEntry {
-  id: number
-  [key: string]: unknown
+  id: string
+  last_block: string
+  updated_at: string
 }
 
 /** Stats response from /stats */
@@ -128,7 +129,7 @@ export interface BatchScoreEntry {
   address: string
   trust_score: number | null
   tier: ScoreTier | null
-  breakdown: ScoreBreakdown | null
+  score_breakdown: ScoreBreakdown | null
   scored_at: string | null
   role: WalletRole | null
 }
