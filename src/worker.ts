@@ -100,7 +100,7 @@ function getSQL(c: { env: Bindings }) {
 app.get('/', (c) =>
   c.json({
     name: 'AgentKarma',
-    version: '0.3.0',
+    version: '0.5.0',
     description: 'Credit bureau for AI agent wallets',
     runtime: 'cloudflare-workers',
   })
@@ -469,6 +469,98 @@ app.post('/api-keys', async (c) => {
     created_at: result[0].created_at,
     message: 'Store this key securely. It cannot be retrieved again.',
   }, 201)
+})
+
+// --- Webhooks ---
+
+const URL_RE = /^https?:\/\/.+/
+
+// Register a webhook (requires API key)
+app.post('/webhooks', async (c) => {
+  const sql = getSQL(c)
+  const apiKey = c.req.header('x-api-key')
+  if (!apiKey) return c.json({ error: 'API key required. Get one at POST /api-keys' }, 401)
+
+  const keys = await sql`SELECT id FROM api_keys WHERE key = ${apiKey} AND is_active = true`
+  if (keys.length === 0) return c.json({ error: 'Invalid or inactive API key' }, 401)
+  const apiKeyId = keys[0].id
+
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
+
+  const { url, wallet_address, event_type, threshold } = body
+
+  if (!url || typeof url !== 'string' || !URL_RE.test(url)) {
+    return c.json({ error: 'url is required and must be a valid HTTP(S) URL' }, 400)
+  }
+
+  const validEvents = ['score_change', 'score_drop', 'score_rise']
+  const evt = event_type ?? 'score_change'
+  if (!validEvents.includes(evt)) {
+    return c.json({ error: `event_type must be one of: ${validEvents.join(', ')}` }, 400)
+  }
+
+  const addr = wallet_address ? validateAddress(wallet_address) : null
+  if (wallet_address && !addr) {
+    return c.json({ error: 'Invalid wallet_address format' }, 400)
+  }
+
+  if (threshold != null && (!Number.isInteger(threshold) || threshold < 0 || threshold > 100)) {
+    return c.json({ error: 'threshold must be an integer 0-100' }, 400)
+  }
+
+  const existing = await sql`SELECT COUNT(*)::int as count FROM webhooks WHERE api_key_id = ${apiKeyId}`
+  if (existing[0].count >= 25) {
+    return c.json({ error: 'Maximum 25 webhooks per API key' }, 400)
+  }
+
+  const result = await sql`
+    INSERT INTO webhooks (api_key_id, url, wallet_address, event_type, threshold)
+    VALUES (${apiKeyId}, ${url}, ${addr}, ${evt}, ${threshold ?? null})
+    RETURNING id, url, wallet_address, event_type, threshold, is_active, created_at
+  `
+
+  return c.json({ webhook: result[0] }, 201)
+})
+
+// List webhooks for an API key
+app.get('/webhooks', async (c) => {
+  const sql = getSQL(c)
+  const apiKey = c.req.header('x-api-key')
+  if (!apiKey) return c.json({ error: 'API key required' }, 401)
+
+  const keys = await sql`SELECT id FROM api_keys WHERE key = ${apiKey} AND is_active = true`
+  if (keys.length === 0) return c.json({ error: 'Invalid or inactive API key' }, 401)
+
+  const webhooks = await sql`
+    SELECT id, url, wallet_address, event_type, threshold, is_active, created_at
+    FROM webhooks WHERE api_key_id = ${keys[0].id}
+    ORDER BY created_at DESC
+  `
+
+  return c.json({ webhooks })
+})
+
+// Delete a webhook
+app.delete('/webhooks/:id', async (c) => {
+  const sql = getSQL(c)
+  const apiKey = c.req.header('x-api-key')
+  if (!apiKey) return c.json({ error: 'API key required' }, 401)
+
+  const keys = await sql`SELECT id FROM api_keys WHERE key = ${apiKey} AND is_active = true`
+  if (keys.length === 0) return c.json({ error: 'Invalid or inactive API key' }, 401)
+
+  const webhookId = safeInt(c.req.param('id'), -1)
+  if (webhookId < 0) return c.json({ error: 'Invalid webhook ID' }, 400)
+
+  const result = await sql`
+    DELETE FROM webhooks WHERE id = ${webhookId} AND api_key_id = ${keys[0].id}
+    RETURNING id
+  `
+
+  if (result.length === 0) return c.json({ error: 'Webhook not found or not owned by this key' }, 404)
+
+  return c.json({ deleted: true, id: result[0].id })
 })
 
 export default app

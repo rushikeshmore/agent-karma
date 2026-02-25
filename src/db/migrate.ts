@@ -142,6 +142,23 @@ async function migrate() {
   `
   console.log('  api_usage table ready')
 
+  // --- v0.5: webhooks table ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id              SERIAL PRIMARY KEY,
+      api_key_id      INTEGER NOT NULL,
+      url             TEXT NOT NULL,
+      wallet_address  VARCHAR(42),
+      event_type      VARCHAR(20) NOT NULL DEFAULT 'score_change',
+      threshold       INTEGER,
+      is_active       BOOLEAN NOT NULL DEFAULT true,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_webhooks_api_key ON webhooks(api_key_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_webhooks_wallet ON webhooks(wallet_address)`
+  console.log('  webhooks table ready')
+
   // --- check DB size ---
   const sizeResult = await sql`SELECT pg_database_size(current_database()) as size`
   const sizeMB = (Number(sizeResult[0].size) / 1024 / 1024).toFixed(1)
