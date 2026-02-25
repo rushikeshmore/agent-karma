@@ -10,8 +10,16 @@ export const REPUTATION_DEPLOY_BLOCK = 24339925n // same block — both went liv
 export const BASE_IDENTITY_DEPLOY_BLOCK = 26_000_000n
 export const BASE_REPUTATION_DEPLOY_BLOCK = 26_000_000n
 
+// ERC-8004 on Arbitrum (same contract addresses, different chain)
+// Arbitrum produces ~4 blocks/sec (~345,600/day). Conservative start.
+export const ARB_IDENTITY_DEPLOY_BLOCK = 300_000_000n
+export const ARB_REPUTATION_DEPLOY_BLOCK = 300_000_000n
+
 // USDC on Base (x402 payments settle here)
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
+
+// USDC on Arbitrum (native USDC via Circle)
+export const ARB_USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as const
 
 // Known x402 facilitator wallets (gas payers for transferWithAuthorization)
 export const KNOWN_FACILITATORS = new Set([
@@ -25,6 +33,7 @@ export const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11
 export const BATCH_SIZE = 10n          // blocks per eth_getLogs call (Alchemy free limit)
 export const BATCH_DELAY_MS = 100      // ms between batches (Ethereum)
 export const BATCH_DELAY_BASE_MS = 100 // ms between batches (Base)
+export const BATCH_DELAY_ARB_MS = 100  // ms between batches (Arbitrum)
 export const RECEIPT_DELAY_MS = 50     // ms between individual receipt fetches
 
 // Alchemy CU costs per method

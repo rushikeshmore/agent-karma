@@ -1,0 +1,365 @@
+openapi: 3.0.3
+info:
+  title: AgentKarma API
+  description: |
+    Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness
+    using public blockchain data from ERC-8004 registrations and x402 payments.
+
+    ## Authentication
+    - **Anonymous**: 100 requests/day (no key needed)
+    - **Free tier**: 1,000 requests/day (get a key via `POST /api-keys`)
+    - Pass your key in the `x-api-key` header
+  version: 0.4.0
+  contact:
+    name: AgentKarma
+    url: https://agentkarma.dev
+
+servers:
+  - url: https://agent-karma.rushikeshmore271.workers.dev
+    description: Production (Cloudflare Workers)
+  - url: http://localhost:3000
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+  - {}
+
+paths:
+  /:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags: [System]
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name: { type: string, example: AgentKarma }
+                  version: { type: string, example: 0.4.0 }
+                  description: { type: string }
+
+  /score/{address}:
+    get:
+      summary: Get trust score for a wallet
+      operationId: getTrustScore
+      tags: [Scoring]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+          description: EVM wallet address
+      responses:
+        '200':
+          description: Trust score with tier and breakdown
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustScore' }
+        '400':
+          description: Invalid address format
+        '404':
+          description: Wallet not found
+
+  /wallet/{address}:
+    get:
+      summary: Get full wallet details
+      operationId: getWallet
+      tags: [Wallets]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+      responses:
+        '200':
+          description: Wallet info with stats
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletLookup' }
+        '404':
+          description: Wallet not found
+
+  /wallet/{address}/transactions:
+    get:
+      summary: Get transaction history for a wallet
+      operationId: getWalletTransactions
+      tags: [Wallets]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 25, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Transaction' }
+
+  /wallet/{address}/feedback:
+    get:
+      summary: Get feedback history for a wallet
+      operationId: getWalletFeedback
+      tags: [Wallets]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+      responses:
+        '200':
+          description: Feedback list
+
+  /wallet/{address}/score-history:
+    get:
+      summary: Get score trend over time
+      operationId: getScoreHistory
+      tags: [Wallets]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        '200':
+          description: Score history entries
+
+  /wallets:
+    get:
+      summary: Browse indexed wallets
+      operationId: listWallets
+      tags: [Wallets]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: source
+          in: query
+          schema: { type: string, enum: [erc8004, x402, both] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [score, tx_count], default: tx_count }
+        - name: score_min
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 100 }
+        - name: score_max
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200':
+          description: Paginated wallet list
+
+  /leaderboard:
+    get:
+      summary: Top wallets by trust score
+      operationId: getLeaderboard
+      tags: [Scoring]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: source
+          in: query
+          schema: { type: string, enum: [erc8004, x402, both] }
+      responses:
+        '200':
+          description: Ranked wallet list
+
+  /stats:
+    get:
+      summary: Database statistics
+      operationId: getStats
+      tags: [System]
+      responses:
+        '200':
+          description: Aggregated statistics
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Stats' }
+
+  /wallets/batch-scores:
+    post:
+      summary: Batch lookup trust scores (max 100)
+      operationId: batchScores
+      tags: [Scoring]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [addresses]
+              properties:
+                addresses:
+                  type: array
+                  items: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+                  maxItems: 100
+      responses:
+        '200':
+          description: Batch score results
+        '400':
+          description: Invalid input
+
+  /feedback:
+    post:
+      summary: Submit feedback for a transaction
+      operationId: submitFeedback
+      tags: [Feedback]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address, tx_hash, rating]
+              properties:
+                address: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+                tx_hash: { type: string, pattern: '^0x[a-fA-F0-9]{64}$' }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Feedback submitted
+        '400':
+          description: Invalid input
+        '404':
+          description: Transaction not found
+
+  /api-keys:
+    post:
+      summary: Generate a free API key
+      operationId: createApiKey
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100, description: 'Name for this key (e.g. your app name)' }
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key: { type: string, example: 'ak_a1b2c3...' }
+                  name: { type: string }
+                  tier: { type: string, enum: [free, developer, growth, enterprise] }
+                  daily_limit: { type: integer }
+                  created_at: { type: string, format: date-time }
+                  message: { type: string }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key from POST /api-keys
+
+  schemas:
+    TrustScore:
+      type: object
+      properties:
+        address: { type: string }
+        trust_score: { type: integer, nullable: true, minimum: 0, maximum: 100 }
+        tier: { type: string, nullable: true, enum: [HIGH, MEDIUM, LOW, MINIMAL] }
+        percentile: { type: integer, nullable: true, description: 'Percentile rank (0-100). "Better than X% of indexed wallets"' }
+        breakdown:
+          $ref: '#/components/schemas/ScoreBreakdown'
+        scored_at: { type: string, format: date-time, nullable: true }
+        source: { type: string, enum: [erc8004, x402, both] }
+        tx_count: { type: integer }
+        role: { type: string, nullable: true, enum: [buyer, seller, both] }
+
+    ScoreBreakdown:
+      type: object
+      nullable: true
+      properties:
+        loyalty: { type: number }
+        activity: { type: number }
+        diversity: { type: number }
+        feedback: { type: number }
+        volume: { type: number }
+        age: { type: number }
+        recency: { type: number }
+        registered_bonus: { type: number }
+
+    WalletLookup:
+      type: object
+      properties:
+        wallet:
+          type: object
+          properties:
+            address: { type: string }
+            source: { type: string }
+            chain: { type: string }
+            erc8004_id: { type: integer, nullable: true }
+            tx_count: { type: integer }
+            trust_score: { type: integer, nullable: true }
+            score_breakdown: { $ref: '#/components/schemas/ScoreBreakdown' }
+        stats:
+          type: object
+          properties:
+            transactions: { type: integer }
+            feedback: { type: integer }
+
+    Transaction:
+      type: object
+      properties:
+        tx_hash: { type: string }
+        block_number: { type: integer }
+        chain: { type: string }
+        payer: { type: string, nullable: true }
+        recipient: { type: string, nullable: true }
+        amount_usdc: { type: string, nullable: true }
+        is_x402: { type: boolean }
+
+    Stats:
+      type: object
+      properties:
+        wallets:
+          type: array
+          items:
+            type: object
+            properties:
+              source: { type: string }
+              count: { type: integer }
+        transactions: { type: integer }
+        feedback: { type: integer }
+        score_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              tier: { type: string }
+              count: { type: integer }
+              avg_score: { type: integer }
+        db_size_mb: { type: string }
+        db_limit_mb: { type: integer }

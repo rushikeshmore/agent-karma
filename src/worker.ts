@@ -22,6 +22,58 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500)
 })
 
+// --- Rate limiting middleware ---
+const ANON_DAILY_LIMIT = 100
+
+app.use('*', async (c, next) => {
+  const path = c.req.path
+  if (path === '/' || path === '/api-keys' || path === '/openapi.json') return next()
+
+  const sql = getSQL(c)
+  const apiKey = c.req.header('x-api-key')
+
+  if (apiKey) {
+    const keys = await sql`SELECT id, tier, daily_limit, is_active FROM api_keys WHERE key = ${apiKey}`
+    if (keys.length === 0) return c.json({ error: 'Invalid API key' }, 401)
+    if (!keys[0].is_active) return c.json({ error: 'API key is inactive' }, 403)
+
+    const keyId = keys[0].id
+    const dailyLimit = keys[0].daily_limit
+
+    const usage = await sql`
+      INSERT INTO api_usage (api_key_id, date, request_count)
+      VALUES (${keyId}, CURRENT_DATE, 1)
+      ON CONFLICT (api_key_id, date) DO UPDATE SET request_count = api_usage.request_count + 1
+      RETURNING request_count
+    `
+
+    if (usage[0].request_count > dailyLimit) {
+      return c.json({ error: 'Daily rate limit exceeded', limit: dailyLimit, tier: keys[0].tier }, 429)
+    }
+  } else {
+    const usage = await sql`
+      INSERT INTO api_usage (api_key_id, date, request_count)
+      VALUES (0, CURRENT_DATE, 1)
+      ON CONFLICT (api_key_id, date) DO UPDATE SET request_count = api_usage.request_count + 1
+      RETURNING request_count
+    `
+
+    if (usage[0].request_count > ANON_DAILY_LIMIT) {
+      return c.json({
+        error: 'Anonymous rate limit exceeded. Get a free API key at POST /api-keys',
+        limit: ANON_DAILY_LIMIT,
+      }, 429)
+    }
+  }
+
+  return next()
+})
+
+// OpenAPI spec — redirect to GitHub raw
+app.get('/openapi.json', (c) => {
+  return c.redirect('https://raw.githubusercontent.com/rushikeshmore/agent-karma/main/openapi.yaml')
+})
+
 const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
 
 function validateAddress(address: string): string | null {
@@ -284,6 +336,7 @@ app.get('/score/:address', async (c) => {
       address: w.address,
       trust_score: null,
       tier: null,
+      percentile: null,
       role: w.role ?? null,
       message: 'Score not yet computed. Run: npm run score',
     })
@@ -294,10 +347,19 @@ app.get('/score/:address', async (c) => {
     w.trust_score >= 50 ? 'MEDIUM' :
     w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
 
+  const pctResult = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE trust_score <= ${w.trust_score})::float
+      / NULLIF(COUNT(*), 0) * 100 AS percentile
+    FROM wallets WHERE trust_score IS NOT NULL
+  `
+  const percentile = pctResult[0].percentile != null ? Math.round(pctResult[0].percentile) : null
+
   return c.json({
     address: w.address,
     trust_score: w.trust_score,
     tier,
+    percentile,
     breakdown: w.score_breakdown,
     scored_at: w.scored_at,
     source: w.source,
@@ -375,6 +437,38 @@ app.get('/stats', async (c) => {
     db_limit_mb: 500,
     indexer_state: idxState,
   })
+})
+
+// Generate API key
+app.post('/api-keys', async (c) => {
+  const sql = getSQL(c)
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
+
+  const { name } = body
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return c.json({ error: 'name is required (min 2 characters)' }, 400)
+  }
+
+  // CF Workers use Web Crypto API
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  const key = `ak_${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}`
+
+  const result = await sql`
+    INSERT INTO api_keys (key, name, tier, daily_limit)
+    VALUES (${key}, ${name.trim()}, 'free', 1000)
+    RETURNING id, key, name, tier, daily_limit, created_at
+  `
+
+  return c.json({
+    api_key: result[0].key,
+    name: result[0].name,
+    tier: result[0].tier,
+    daily_limit: result[0].daily_limit,
+    created_at: result[0].created_at,
+    message: 'Store this key securely. It cannot be retrieved again.',
+  }, 201)
 })
 
 export default app

@@ -217,6 +217,17 @@ server.registerTool(
       w.trust_score >= 50 ? 'MEDIUM' :
       w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
 
+    let percentile: number | null = null
+    if (w.trust_score != null) {
+      const pctResult = await sql`
+        SELECT
+          COUNT(*) FILTER (WHERE trust_score <= ${w.trust_score})::float
+          / NULLIF(COUNT(*), 0) * 100 AS percentile
+        FROM wallets WHERE trust_score IS NOT NULL
+      `
+      percentile = pctResult[0].percentile != null ? Math.round(pctResult[0].percentile) : null
+    }
+
     return {
       content: [{
         type: 'text' as const,
@@ -225,6 +236,7 @@ server.registerTool(
           address: w.address,
           trust_score: w.trust_score,
           tier: tierLabel,
+          percentile,
           breakdown: w.score_breakdown,
           scored_at: w.scored_at,
           source: w.source,
