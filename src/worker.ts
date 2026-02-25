@@ -9,21 +9,54 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { neon } from '@neondatabase/serverless'
 
+interface RateLimitOutcome {
+  success: boolean
+}
+interface RateLimit {
+  limit(options: { key: string }): Promise<RateLimitOutcome>
+}
+
 type Bindings = {
   DATABASE_URL: string
+  RATE_LIMITER: RateLimit
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.use('*', cors())
+app.use('*', cors({
+  origin: ['https://agentkarma.dev', 'https://www.agentkarma.dev', 'http://localhost:3000', 'http://localhost:3001'],
+  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'x-api-key'],
+}))
 
 app.onError((err, c) => {
   console.error(`[API Error] ${c.req.method} ${c.req.path}:`, err.message)
   return c.json({ error: 'Internal server error' }, 500)
 })
 
-// --- Rate limiting middleware ---
-const ANON_DAILY_LIMIT = 100
+// --- Burst rate limiting (Cloudflare Workers Rate Limiting Binding) ---
+// 25 requests per 10 seconds per IP. Catches scrapers/bots. Zero latency.
+app.use('*', async (c, next) => {
+  const path = c.req.path
+  if (path === '/' || path === '/openapi.json') return next()
+
+  if (c.env.RATE_LIMITER) {
+    const ip = c.req.header('cf-connecting-ip') || 'unknown'
+    const { success } = await c.env.RATE_LIMITER.limit({ key: ip })
+    if (!success) {
+      return c.json({
+        error: 'Too many requests. Slow down.',
+        retry_after: 10,
+      }, 429)
+    }
+  }
+
+  return next()
+})
+
+// --- API key rate limiting (DB-tracked daily limits) ---
+// Anonymous requests pass through (burst limiter above is sufficient)
+// API key requests: tracked in DB for per-key daily limits
 
 app.use('*', async (c, next) => {
   const path = c.req.path
@@ -50,21 +83,8 @@ app.use('*', async (c, next) => {
     if (usage[0].request_count > dailyLimit) {
       return c.json({ error: 'Daily rate limit exceeded', limit: dailyLimit, tier: keys[0].tier }, 429)
     }
-  } else {
-    const usage = await sql`
-      INSERT INTO api_usage (api_key_id, date, request_count)
-      VALUES (0, CURRENT_DATE, 1)
-      ON CONFLICT (api_key_id, date) DO UPDATE SET request_count = api_usage.request_count + 1
-      RETURNING request_count
-    `
-
-    if (usage[0].request_count > ANON_DAILY_LIMIT) {
-      return c.json({
-        error: 'Anonymous rate limit exceeded. Get a free API key at POST /api-keys',
-        limit: ANON_DAILY_LIMIT,
-      }, 429)
-    }
   }
+  // Anonymous requests pass through — rate limiting handled by Cloudflare
 
   return next()
 })
@@ -159,6 +179,10 @@ app.post('/feedback', async (c) => {
   let body: any
   try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
   const { address, tx_hash, rating, comment } = body
+
+  if (comment != null && (typeof comment !== 'string' || comment.length > 1000)) {
+    return c.json({ error: 'comment must be a string with max 1000 characters' }, 400)
+  }
 
   const validAddress = typeof address === 'string' ? validateAddress(address) : null
   if (!validAddress) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
@@ -391,12 +415,15 @@ app.get('/wallet/:address/feedback', async (c) => {
   const sql = getSQL(c)
   const address = validateAddress(c.req.param('address'))
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
+  const limit = Math.min(safeInt(c.req.query('limit'), 25), 100)
+  const offset = safeInt(c.req.query('offset'), 0)
 
   const fb = await sql`
     SELECT f.* FROM feedback f
     JOIN wallets w ON f.agent_id = w.erc8004_id
     WHERE w.address = ${address}
     ORDER BY f.block_number DESC
+    LIMIT ${limit} OFFSET ${offset}
   `
 
   return c.json({ feedback: fb })
@@ -415,10 +442,10 @@ app.get('/stats', async (c) => {
     sql`
       SELECT
         CASE
-          WHEN trust_score >= 80 THEN 'high'
-          WHEN trust_score >= 50 THEN 'medium'
-          WHEN trust_score >= 20 THEN 'low'
-          ELSE 'minimal'
+          WHEN trust_score >= 80 THEN 'HIGH'
+          WHEN trust_score >= 50 THEN 'MEDIUM'
+          WHEN trust_score >= 20 THEN 'LOW'
+          ELSE 'MINIMAL'
         END as tier,
         COUNT(*)::int as count,
         ROUND(AVG(trust_score))::int as avg_score

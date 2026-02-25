@@ -227,7 +227,7 @@ async function fireWebhooks(
         if (!crossedDown && !crossedUp && !newWalletBelow) continue
       }
 
-      // Fire the webhook (best-effort, don't crash on failure)
+      // Fire the webhook with retry (best-effort, don't crash on failure)
       const tier = newScore >= 80 ? 'HIGH' : newScore >= 50 ? 'MEDIUM' : newScore >= 20 ? 'LOW' : 'MINIMAL'
       const payload = {
         event: wh.event_type,
@@ -239,19 +239,44 @@ async function fireWebhooks(
         timestamp: new Date().toISOString(),
       }
 
-      try {
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 5000)
-        await fetch(wh.url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        })
-        clearTimeout(timer)
+      let delivered = false
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), 5000)
+          const resp = await fetch(wh.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          })
+          clearTimeout(timer)
+          if (resp.ok) {
+            delivered = true
+            break
+          }
+          // Non-2xx: retry after backoff
+          if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
+        } catch (err: any) {
+          if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
+        }
+      }
+
+      if (delivered) {
         fired++
-      } catch (err: any) {
-        console.error(`  Webhook ${wh.id} failed for ${result.address}: ${err.message}`)
+        // Reset failure count on success
+        if (wh.failure_count > 0) {
+          await sql`UPDATE webhooks SET failure_count = 0 WHERE id = ${wh.id}`.catch(() => {})
+        }
+      } else {
+        const newCount = (wh.failure_count ?? 0) + 1
+        console.error(`  Webhook ${wh.id} failed for ${result.address} (${newCount} consecutive failures)`)
+        if (newCount >= 5) {
+          console.error(`  Deactivating webhook ${wh.id} after 5 consecutive failures`)
+          await sql`UPDATE webhooks SET is_active = false, failure_count = ${newCount} WHERE id = ${wh.id}`.catch(() => {})
+        } else {
+          await sql`UPDATE webhooks SET failure_count = ${newCount} WHERE id = ${wh.id}`.catch(() => {})
+        }
       }
     }
   }

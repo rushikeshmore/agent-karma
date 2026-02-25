@@ -5,7 +5,11 @@ import sql from '../db/client.js'
 
 const app = new Hono()
 
-app.use('*', cors())
+app.use('*', cors({
+  origin: ['https://agentkarma.dev', 'https://www.agentkarma.dev', 'http://localhost:3000', 'http://localhost:3001'],
+  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'x-api-key'],
+}))
 
 app.onError((err, c) => {
   console.error(`[API Error] ${c.req.method} ${c.req.path}:`, err.message)
@@ -13,17 +17,16 @@ app.onError((err, c) => {
 })
 
 // --- Rate limiting middleware ---
-const ANON_DAILY_LIMIT = 100
+// Anonymous requests: no in-app rate limiting (use Cloudflare rate limiting rules at the edge)
+// API key requests: tracked in DB for per-key daily limits
 
 app.use('*', async (c, next) => {
-  // Skip rate limiting for health check and api-key creation
   const path = c.req.path
   if (path === '/' || path === '/api-keys' || path === '/openapi.json') return next()
 
   const apiKey = c.req.header('x-api-key')
 
   if (apiKey) {
-    // Authenticated request
     const keys = await sql`SELECT id, tier, daily_limit, is_active FROM api_keys WHERE key = ${apiKey}`
     if (keys.length === 0) return c.json({ error: 'Invalid API key' }, 401)
     if (!keys[0].is_active) return c.json({ error: 'API key is inactive' }, 403)
@@ -31,7 +34,6 @@ app.use('*', async (c, next) => {
     const keyId = keys[0].id
     const dailyLimit = keys[0].daily_limit
 
-    // Upsert daily usage
     const usage = await sql`
       INSERT INTO api_usage (api_key_id, date, request_count)
       VALUES (${keyId}, CURRENT_DATE, 1)
@@ -39,8 +41,7 @@ app.use('*', async (c, next) => {
       RETURNING request_count
     `
 
-    const count = usage[0].request_count
-    if (count > dailyLimit) {
+    if (usage[0].request_count > dailyLimit) {
       return c.json({
         error: 'Daily rate limit exceeded',
         limit: dailyLimit,
@@ -49,23 +50,8 @@ app.use('*', async (c, next) => {
     }
 
     c.set('apiKeyTier' as any, keys[0].tier)
-  } else {
-    // Anonymous request — IP-based limiting
-    // Use a virtual key_id of 0 for anonymous tracking
-    const usage = await sql`
-      INSERT INTO api_usage (api_key_id, date, request_count)
-      VALUES (0, CURRENT_DATE, 1)
-      ON CONFLICT (api_key_id, date) DO UPDATE SET request_count = api_usage.request_count + 1
-      RETURNING request_count
-    `
-
-    if (usage[0].request_count > ANON_DAILY_LIMIT) {
-      return c.json({
-        error: 'Anonymous rate limit exceeded. Get a free API key at POST /api-keys',
-        limit: ANON_DAILY_LIMIT,
-      }, 429)
-    }
   }
+  // Anonymous requests pass through — rate limiting handled by Cloudflare
 
   return next()
 })
@@ -156,6 +142,10 @@ app.post('/feedback', async (c) => {
   let body: any
   try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
   const { address, tx_hash, rating, comment } = body
+
+  if (comment != null && (typeof comment !== 'string' || comment.length > 1000)) {
+    return c.json({ error: 'comment must be a string with max 1000 characters' }, 400)
+  }
 
   const validAddress = typeof address === 'string' ? validateAddress(address) : null
   if (!validAddress) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
@@ -371,12 +361,15 @@ app.get('/wallet/:address/transactions', async (c) => {
 app.get('/wallet/:address/feedback', async (c) => {
   const address = validateAddress(c.req.param('address'))
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
+  const limit = Math.min(safeInt(c.req.query('limit'), 25), 100)
+  const offset = safeInt(c.req.query('offset'), 0)
 
   const fb = await sql`
     SELECT f.* FROM feedback f
     JOIN wallets w ON f.agent_id = w.erc8004_id
     WHERE w.address = ${address}
     ORDER BY f.block_number DESC
+    LIMIT ${limit} OFFSET ${offset}
   `
 
   return c.json({ feedback: fb })
@@ -393,10 +386,10 @@ app.get('/stats', async (c) => {
     sql`
       SELECT
         CASE
-          WHEN trust_score >= 80 THEN 'high'
-          WHEN trust_score >= 50 THEN 'medium'
-          WHEN trust_score >= 20 THEN 'low'
-          ELSE 'minimal'
+          WHEN trust_score >= 80 THEN 'HIGH'
+          WHEN trust_score >= 50 THEN 'MEDIUM'
+          WHEN trust_score >= 20 THEN 'LOW'
+          ELSE 'MINIMAL'
         END as tier,
         COUNT(*)::int as count,
         ROUND(AVG(trust_score))::int as avg_score
