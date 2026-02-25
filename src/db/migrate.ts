@@ -114,6 +114,34 @@ async function migrate() {
   await sql`ALTER TABLE feedback ADD COLUMN IF NOT EXISTS target_address VARCHAR(42)`
   console.log('  feedback.source + target_address columns ready')
 
+  // --- v0.4: api_keys table ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id              SERIAL PRIMARY KEY,
+      key             VARCHAR(64) NOT NULL UNIQUE,
+      name            VARCHAR(100) NOT NULL,
+      tier            VARCHAR(20) NOT NULL DEFAULT 'free',
+      daily_limit     INTEGER NOT NULL DEFAULT 1000,
+      is_active       BOOLEAN NOT NULL DEFAULT true,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(key)`
+  console.log('  api_keys table ready')
+
+  // --- v0.4: api_usage table (daily request counts per key) ---
+  // api_key_id = 0 is the sentinel for anonymous/unauthenticated requests
+  await sql`
+    CREATE TABLE IF NOT EXISTS api_usage (
+      id              SERIAL PRIMARY KEY,
+      api_key_id      INTEGER NOT NULL DEFAULT 0,
+      date            DATE NOT NULL DEFAULT CURRENT_DATE,
+      request_count   INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(api_key_id, date)
+    )
+  `
+  console.log('  api_usage table ready')
+
   // --- check DB size ---
   const sizeResult = await sql`SELECT pg_database_size(current_database()) as size`
   const sizeMB = (Number(sizeResult[0].size) / 1024 / 1024).toFixed(1)

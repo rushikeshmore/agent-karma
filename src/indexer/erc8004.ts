@@ -13,7 +13,7 @@
  */
 
 import { parseAbiItem, type PublicClient } from 'viem'
-import { ethClient, baseClient } from '../config/chains.js'
+import { ethClient, baseClient, arbClient } from '../config/chains.js'
 import {
   IDENTITY_REGISTRY,
   REPUTATION_REGISTRY,
@@ -21,9 +21,12 @@ import {
   REPUTATION_DEPLOY_BLOCK,
   BASE_IDENTITY_DEPLOY_BLOCK,
   BASE_REPUTATION_DEPLOY_BLOCK,
+  ARB_IDENTITY_DEPLOY_BLOCK,
+  ARB_REPUTATION_DEPLOY_BLOCK,
   BATCH_SIZE,
   BATCH_DELAY_MS,
   BATCH_DELAY_BASE_MS,
+  BATCH_DELAY_ARB_MS,
 } from '../config/constants.js'
 import { trackCU, getCUUsage, shouldStop } from './cu-tracker.js'
 import sql from '../db/client.js'
@@ -257,6 +260,14 @@ const BASE_CONFIG: ChainConfig = {
   label: 'base',
 }
 
+const ARB_CONFIG: ChainConfig = {
+  client: arbClient as PublicClient,
+  chain: 'arbitrum',
+  stateId: '', // set per-indexer below
+  batchDelay: BATCH_DELAY_ARB_MS,
+  label: 'arb',
+}
+
 async function indexChain(cfg: ChainConfig, identityDeployBlock: bigint, reputationDeployBlock: bigint) {
   trackCU('eth_blockNumber')
   const currentBlock = await cfg.client.getBlockNumber()
@@ -318,6 +329,14 @@ async function main() {
   if (!chainArg || chainArg === 'base') {
     console.log('\n--- Base ---')
     const result = await indexChain(BASE_CONFIG, BASE_IDENTITY_DEPLOY_BLOCK, BASE_REPUTATION_DEPLOY_BLOCK)
+    totalMints += result.mints
+    totalFeedback += result.feedback
+  }
+
+  // Index Arbitrum
+  if (!chainArg || chainArg === 'arbitrum') {
+    console.log('\n--- Arbitrum ---')
+    const result = await indexChain(ARB_CONFIG, ARB_IDENTITY_DEPLOY_BLOCK, ARB_REPUTATION_DEPLOY_BLOCK)
     totalMints += result.mints
     totalFeedback += result.feedback
   }

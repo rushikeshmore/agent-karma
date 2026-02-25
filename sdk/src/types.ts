@@ -21,6 +21,7 @@ export interface TrustScore {
   address: string
   trust_score: number | null
   tier: ScoreTier | null
+  percentile: number | null
   breakdown: ScoreBreakdown | null
   scored_at: string | null
   source: string

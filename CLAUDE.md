@@ -4,7 +4,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 
 ## Stack
 - TypeScript, ESM (`"type": "module"`)
-- viem — blockchain reads (Ethereum mainnet + Base L2)
+- viem — blockchain reads (Ethereum mainnet + Base L2 + Arbitrum)
 - postgres (postgres.js) — Neon Postgres
 - Hono + @hono/node-server — REST API
 - @modelcontextprotocol/sdk — MCP server for AI agent access
@@ -19,8 +19,8 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 ## Scripts
 - `npm run test:rpc` — Phase 0.5 validation
 - `npm run db:migrate` — idempotent schema migration
-- `npm run indexer:erc8004` — index ERC-8004 mints + feedback (Ethereum + Base)
-- `npm run indexer:x402` — index x402 payments on Base
+- `npm run indexer:erc8004` — index ERC-8004 mints + feedback (Ethereum + Base + Arbitrum)
+- `npm run indexer:x402` — index x402 payments (Base default, `--chain arbitrum` or `--chain all`)
 - `npm run dev` — local API server with watch mode
 - `npm run mcp` — MCP server (stdio transport)
 - `npm run score` — compute trust scores (use `--full` for full rescore)
@@ -30,7 +30,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - ReputationRegistry: `0x8004BAa1...` (Ethereum block 24339925, Base block ~26000000)
 - USDC on Base: `0x833589fC...`
 
-## API Endpoints (v0.3.0)
+## API Endpoints (v0.4.0)
 - `GET /` — health check
 - `GET /score/:address` — trust score with tier + breakdown
 - `GET /wallet/:address` — full wallet detail + stats
@@ -42,6 +42,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `GET /stats` — database statistics
 - `POST /wallets/batch-scores` — batch lookup (max 100)
 - `POST /feedback` — submit feedback for a transaction
+- `POST /api-keys` — generate a free API key (1000 req/day)
 
 ## MCP Tools (6)
 - `lookup_wallet` — wallet info + trust score + stats
@@ -53,14 +54,26 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 
 ## Scoring Algorithm (v3)
 7 weighted signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%)
-+5 bonus for ERC-8004 registered agents. Sybil resistance on loyalty signal.
++5 bonus for ERC-8004 registered agents. Sybil resistance on loyalty signal (cap at 40 when avgTxPerPartner >= 20 with < 3 counterparties).
 Age uses log-scale (early days matter more). Volume defaults to neutral when no data.
 Incremental scoring via `needs_rescore` flag. Score history tracked per run.
+Bulk UPDATE via unnest arrays (1 SQL per batch of 500, not per row).
 
 ## Dual Entry Points
 Every API route exists in BOTH:
 - `src/api/routes.ts` — Node.js/postgres.js (tagged templates with identifier helpers)
 - `src/worker.ts` — CF Workers/neon serverless (no identifier helpers, conditional SQL)
+
+## Error Resilience
+- Indexers retry RPC calls (429/502/timeout) with exponential backoff (3 attempts)
+- Individual insert failures logged and skipped (don't crash the full run)
+- JSON parse errors on POST routes return 400, not 500
+- CU tracker auto-stops indexers at 80% of monthly budget
+
+## Testing
+- `npm test` runs both scoring + SDK tests (75 total)
+- Scoring: 49 tests (all 7 signals, edge cases, NaN guards, Sybil cap)
+- SDK: 26 tests (all methods, error handling, param mapping)
 
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)
