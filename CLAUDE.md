@@ -49,13 +49,14 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `GET /openapi.json` — OpenAPI 3.0 spec (redirects to GitHub)
 - `GET /openai-functions.json` — OpenAI function-calling schema (redirects to GitHub)
 
-## MCP Tools (6)
+## MCP Tools (7)
 - `lookup_wallet` — wallet info + trust score + stats
 - `get_wallet_trust_signals` — trust indicators (tx history, counterparties, feedback)
 - `get_trust_score` — quick 0-100 score check with tier + breakdown
 - `batch_trust_scores` — batch lookup for multiple wallets
 - `list_wallets` — browse indexed wallets by source
 - `agentkarma_stats` — database statistics
+- `manage_webhooks` — create/list/delete webhook subscriptions
 
 ## Scoring Algorithm (v3)
 7 weighted signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%)
