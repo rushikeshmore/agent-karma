@@ -11,10 +11,6 @@ import type {
   FeedbackResponse,
   ListWalletsOptions,
   ListWalletsResponse,
-  RegisterWebhookParams,
-  RegisterWebhookResponse,
-  ListWebhooksResponse,
-  DeleteWebhookResponse,
 } from './types.js'
 
 const DEFAULT_BASE_URL = 'https://agent-karma.rushikeshmore271.workers.dev'
@@ -295,37 +291,6 @@ export class AgentKarma {
     }
   }
 
-  /**
-   * Register a webhook to get notified on score changes.
-   * Requires an API key (pass via constructor options).
-   *
-   * @example
-   * ```ts
-   * const karma = new AgentKarma({ apiKey: 'ak_...' })
-   * const { webhook } = await karma.registerWebhook({
-   *   url: 'https://myapp.com/webhook',
-   *   event_type: 'score_drop',
-   *   threshold: 50,
-   * })
-   * ```
-   */
-  async registerWebhook(params: RegisterWebhookParams): Promise<RegisterWebhookResponse> {
-    return this.post<RegisterWebhookResponse>('/webhooks', params)
-  }
-
-  /**
-   * List all webhooks registered under your API key.
-   */
-  async listWebhooks(): Promise<ListWebhooksResponse> {
-    return this.fetch<ListWebhooksResponse>('/webhooks')
-  }
-
-  /**
-   * Delete a webhook by ID.
-   */
-  async deleteWebhook(id: number): Promise<DeleteWebhookResponse> {
-    return this.delete<DeleteWebhookResponse>(`/webhooks/${id}`)
-  }
 }
 
 export class AgentKarmaError extends Error {

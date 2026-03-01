@@ -183,107 +183,6 @@ export function computeScore(w: WalletSignals): {
   }
 }
 
-// --- Webhook firing ---
-
-async function fireWebhooks(
-  oldWallets: any[],
-  newResults: { address: string; score: number; breakdown: string; role: string | null }[],
-) {
-  const webhooks = await sql`SELECT * FROM webhooks WHERE is_active = true`
-  if (webhooks.length === 0) return
-
-  console.log(`\nChecking ${webhooks.length} active webhooks...`)
-
-  const oldScoreMap = new Map<string, number | null>()
-  for (const w of oldWallets) {
-    oldScoreMap.set(w.address, w.trust_score ?? null)
-  }
-
-  let fired = 0
-
-  for (const wh of webhooks) {
-    // Find matching wallets
-    const targets = wh.wallet_address
-      ? newResults.filter((r) => r.address === wh.wallet_address)
-      : newResults
-
-    for (const result of targets) {
-      const oldScore = oldScoreMap.get(result.address) ?? null
-      const newScore = result.score
-      if (oldScore === newScore) continue
-
-      // Check event type match
-      const scoreRose = oldScore !== null && newScore > oldScore
-      const scoreDropped = oldScore !== null && newScore < oldScore
-
-      if (wh.event_type === 'score_rise' && !scoreRose) continue
-      if (wh.event_type === 'score_drop' && !scoreDropped) continue
-
-      // Check threshold crossing
-      if (wh.threshold != null) {
-        const crossedDown = oldScore !== null && oldScore >= wh.threshold && newScore < wh.threshold
-        const crossedUp = oldScore !== null && oldScore < wh.threshold && newScore >= wh.threshold
-        const newWalletBelow = oldScore === null && newScore < wh.threshold
-        if (!crossedDown && !crossedUp && !newWalletBelow) continue
-      }
-
-      // Fire the webhook with retry (best-effort, don't crash on failure)
-      const tier = newScore >= 80 ? 'HIGH' : newScore >= 50 ? 'MEDIUM' : newScore >= 20 ? 'LOW' : 'MINIMAL'
-      const payload = {
-        event: wh.event_type,
-        address: result.address,
-        old_score: oldScore,
-        new_score: newScore,
-        tier,
-        threshold: wh.threshold,
-        timestamp: new Date().toISOString(),
-      }
-
-      let delivered = false
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const controller = new AbortController()
-          const timer = setTimeout(() => controller.abort(), 5000)
-          const resp = await fetch(wh.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          })
-          clearTimeout(timer)
-          if (resp.ok) {
-            delivered = true
-            break
-          }
-          // Non-2xx: retry after backoff
-          if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
-        } catch (err: any) {
-          if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
-        }
-      }
-
-      if (delivered) {
-        fired++
-        // Reset failure count on success
-        if (wh.failure_count > 0) {
-          await sql`UPDATE webhooks SET failure_count = 0 WHERE id = ${wh.id}`.catch(() => {})
-        }
-      } else {
-        const newCount = (wh.failure_count ?? 0) + 1
-        console.error(`  Webhook ${wh.id} failed for ${result.address} (${newCount} consecutive failures)`)
-        if (newCount >= 5) {
-          console.error(`  Deactivating webhook ${wh.id} after 5 consecutive failures`)
-          await sql`UPDATE webhooks SET is_active = false, failure_count = ${newCount} WHERE id = ${wh.id}`.catch(() => {})
-        } else {
-          await sql`UPDATE webhooks SET failure_count = ${newCount} WHERE id = ${wh.id}`.catch(() => {})
-        }
-      }
-    }
-  }
-
-  if (fired > 0) console.log(`  Fired ${fired} webhook notifications`)
-}
-
 // --- CLI: compute scores for all wallets ---
 
 async function main() {
@@ -509,9 +408,6 @@ async function main() {
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1)
   console.log(`\nDone. Scored ${results.length} wallets in ${totalTime}s.`)
-
-  // --- Fire webhooks for score changes ---
-  await fireWebhooks(wallets, results)
 
   // Show score distribution
   const dist = await sql`
