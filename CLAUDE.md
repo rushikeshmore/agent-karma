@@ -43,20 +43,16 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `POST /wallets/batch-scores` — batch lookup (max 100)
 - `POST /feedback` — submit feedback for a transaction
 - `POST /api-keys` — generate a free API key (1000 req/day)
-- `POST /webhooks` — register a webhook for score change notifications (requires API key)
-- `GET /webhooks` — list your registered webhooks (requires API key)
-- `DELETE /webhooks/:id` — delete a webhook (requires API key)
 - `GET /openapi.json` — OpenAPI 3.0 spec (redirects to GitHub)
 - `GET /openai-functions.json` — OpenAI function-calling schema (redirects to GitHub)
 
-## MCP Tools (7)
+## MCP Tools (6)
 - `lookup_wallet` — wallet info + trust score + stats
 - `get_wallet_trust_signals` — trust indicators (tx history, counterparties, feedback)
 - `get_trust_score` — quick 0-100 score check with tier + breakdown
 - `batch_trust_scores` — batch lookup for multiple wallets
 - `list_wallets` — browse indexed wallets by source
 - `agentkarma_stats` — database statistics
-- `manage_webhooks` — create/list/delete webhook subscriptions
 
 ## Scoring Algorithm (v3)
 7 weighted signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%)
@@ -80,14 +76,6 @@ Every API route exists in BOTH:
 - `npm test` runs both scoring + SDK tests (75 total)
 - Scoring: 49 tests (all 7 signals, edge cases, NaN guards, Sybil cap)
 - SDK: 26 tests (all methods, error handling, param mapping)
-
-## Webhooks
-- Score change notifications via HTTP POST to registered URLs
-- Events: `score_change` (any change), `score_drop`, `score_rise`
-- Optional: filter by specific wallet_address or threshold crossing
-- Fired after scoring engine runs (`npm run score`)
-- Max 25 webhooks per API key
-- Payload: `{ event, address, old_score, new_score, tier, threshold, timestamp }`
 
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)

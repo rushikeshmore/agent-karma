@@ -37,7 +37,7 @@ Create a client instance.
 | --- | --- | --- | --- |
 | `baseUrl` | `string` | Public API | Custom API base URL |
 | `timeout` | `number` | `10000` | Request timeout in ms |
-| `apiKey` | `string` | - | API key for higher rate limits and webhooks |
+| `apiKey` | `string` | - | API key for higher rate limits |
 
 ```typescript
 const karma = new AgentKarma({
@@ -168,37 +168,6 @@ const { feedback_id } = await karma.submitFeedback({
 })
 ```
 
-### `registerWebhook(params): Promise<RegisterWebhookResponse>`
-
-Register a webhook to get notified on score changes. Requires an API key.
-
-```typescript
-const karma = new AgentKarma({ apiKey: 'ak_...' })
-
-const { webhook } = await karma.registerWebhook({
-  url: 'https://myapp.com/webhook',
-  event_type: 'score_drop',   // 'score_change' | 'score_drop' | 'score_rise'
-  wallet_address: '0x...',     // optional, only fire for this wallet
-  threshold: 50,               // optional, only fire when score crosses this
-})
-```
-
-### `listWebhooks(): Promise<ListWebhooksResponse>`
-
-List all webhooks registered under your API key.
-
-```typescript
-const { webhooks } = await karma.listWebhooks()
-```
-
-### `deleteWebhook(id): Promise<DeleteWebhookResponse>`
-
-Delete a webhook by ID.
-
-```typescript
-await karma.deleteWebhook(123)
-```
-
 ## Types
 
 All types are exported from the package:
@@ -224,10 +193,6 @@ import type {
   FeedbackResponse,
   ListWalletsOptions,
   ListWalletsResponse,
-  Webhook,
-  WebhookEventType,
-  WebhookPayload,
-  RegisterWebhookParams,
 } from 'agentkarma'
 ```
 

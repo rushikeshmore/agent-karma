@@ -9,7 +9,7 @@ info:
     - **Anonymous**: No key needed. Rate limited at the edge by Cloudflare.
     - **Free tier**: 1,000 requests/day (get a key via `POST /api-keys`)
     - Pass your key in the `x-api-key` header
-    - API keys are required for webhooks and provide higher rate limits.
+    - API keys provide higher rate limits.
   version: 0.5.0
   contact:
     name: AgentKarma
@@ -253,79 +253,6 @@ paths:
         '404':
           description: Transaction not found
 
-  /webhooks:
-    post:
-      summary: Register a webhook for score change notifications
-      operationId: registerWebhook
-      tags: [Webhooks]
-      security:
-        - ApiKeyAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [url]
-              properties:
-                url: { type: string, format: uri, description: 'HTTPS URL to receive webhook POST requests' }
-                wallet_address: { type: string, pattern: '^0x[a-fA-F0-9]{40}$', description: 'Optional: only fire for this specific wallet' }
-                event_type: { type: string, enum: [score_change, score_drop, score_rise], default: score_change }
-                threshold: { type: integer, minimum: 0, maximum: 100, description: 'Optional: only fire when score crosses this threshold' }
-      responses:
-        '201':
-          description: Webhook registered
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  webhook: { $ref: '#/components/schemas/Webhook' }
-        '400':
-          description: Invalid input
-        '401':
-          description: API key required
-    get:
-      summary: List your registered webhooks
-      operationId: listWebhooks
-      tags: [Webhooks]
-      security:
-        - ApiKeyAuth: []
-      responses:
-        '200':
-          description: Webhook list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  webhooks:
-                    type: array
-                    items: { $ref: '#/components/schemas/Webhook' }
-        '401':
-          description: API key required
-
-  /webhooks/{id}:
-    delete:
-      summary: Delete a webhook
-      operationId: deleteWebhook
-      tags: [Webhooks]
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-          description: Webhook ID
-      responses:
-        '200':
-          description: Webhook deleted
-        '401':
-          description: API key required
-        '404':
-          description: Webhook not found
-
   /api-keys:
     post:
       summary: Generate a free API key
@@ -444,25 +371,3 @@ components:
         db_size_mb: { type: string }
         db_limit_mb: { type: integer }
 
-    Webhook:
-      type: object
-      properties:
-        id: { type: integer }
-        url: { type: string, format: uri }
-        wallet_address: { type: string, nullable: true }
-        event_type: { type: string, enum: [score_change, score_drop, score_rise] }
-        threshold: { type: integer, nullable: true }
-        is_active: { type: boolean }
-        created_at: { type: string, format: date-time }
-
-    WebhookPayload:
-      type: object
-      description: Payload sent to webhook URLs when scores change
-      properties:
-        event: { type: string, enum: [score_change, score_drop, score_rise] }
-        address: { type: string }
-        old_score: { type: integer, nullable: true }
-        new_score: { type: integer }
-        tier: { type: string, enum: [HIGH, MEDIUM, LOW, MINIMAL] }
-        threshold: { type: integer, nullable: true }
-        timestamp: { type: string, format: date-time }

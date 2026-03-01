@@ -23,11 +23,4 @@ export type {
   FeedbackResponse,
   ListWalletsOptions,
   ListWalletsResponse,
-  WebhookEventType,
-  Webhook,
-  RegisterWebhookParams,
-  RegisterWebhookResponse,
-  ListWebhooksResponse,
-  DeleteWebhookResponse,
-  WebhookPayload,
 } from './types.js'

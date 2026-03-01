@@ -94,7 +94,7 @@ npm install agentkarma
 import { AgentKarma } from 'agentkarma'
 
 const karma = new AgentKarma()
-// Or with an API key for higher limits and webhooks:
+// Or with an API key for higher limits:
 // const karma = new AgentKarma({ apiKey: 'ak_...' })
 
 // Quick boolean gate
@@ -152,9 +152,6 @@ curl https://agent-karma.rushikeshmore271.workers.dev/stats
 | `POST` | `/wallets/batch-scores` | Batch lookup trust scores (max 100 addresses) |
 | `POST` | `/feedback` | Submit feedback for a transaction |
 | `POST` | `/api-keys` | Generate a free API key (1,000 req/day) |
-| `POST` | `/webhooks` | Register a webhook for score change notifications |
-| `GET` | `/webhooks` | List your registered webhooks |
-| `DELETE` | `/webhooks/:id` | Delete a webhook |
 | `GET` | `/openapi.json` | OpenAPI 3.0 spec |
 
 ### Authentication
@@ -185,8 +182,6 @@ npm run mcp
 | `batch_trust_scores` | Batch lookup for multiple wallets (max 100) |
 | `list_wallets` | Browse indexed wallets by source |
 | `agentkarma_stats` | Database statistics |
-| `manage_webhooks` | Register, list, and delete score change webhooks |
-
 Add to Claude Desktop (`claude_desktop_config.json`):
 
 ```json
@@ -204,29 +199,6 @@ Add to Claude Desktop (`claude_desktop_config.json`):
   }
 }
 ```
-
-### Webhooks
-
-Get notified when wallet scores change. Requires an API key.
-
-```typescript
-const karma = new AgentKarma({ apiKey: 'ak_...' })
-
-// Alert me if any wallet drops below 50
-await karma.registerWebhook({
-  url: 'https://myapp.com/alerts',
-  event_type: 'score_drop',
-  threshold: 50,
-})
-
-// Or watch a specific wallet for any score change
-await karma.registerWebhook({
-  url: 'https://myapp.com/alerts',
-  wallet_address: '0x...',
-})
-```
-
-Three event types: `score_change` (any change), `score_drop`, `score_rise`. You can optionally filter to a specific wallet and set a threshold that triggers when the score crosses it.
 
 ---
 
@@ -285,8 +257,8 @@ agent-karma/
 │   ├── db/            # Postgres client and migrations
 │   ├── indexer/       # ERC-8004 + x402 indexers, CU budget tracker
 │   ├── scoring/       # 7-signal trust score engine
-│   ├── api/           # Hono REST API (16 endpoints)
-│   ├── mcp/           # MCP server (7 tools)
+│   ├── api/           # Hono REST API (13 endpoints)
+│   ├── mcp/           # MCP server (6 tools)
 │   └── worker.ts      # Cloudflare Workers entry point
 ├── sdk/               # npm package: agentkarma
 ├── openapi.yaml       # OpenAPI 3.0 spec
