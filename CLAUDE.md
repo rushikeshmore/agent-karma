@@ -46,6 +46,8 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `POST /webhooks` — register a webhook for score change notifications (requires API key)
 - `GET /webhooks` — list your registered webhooks (requires API key)
 - `DELETE /webhooks/:id` — delete a webhook (requires API key)
+- `GET /openapi.json` — OpenAPI 3.0 spec (redirects to GitHub)
+- `GET /openai-functions.json` — OpenAI function-calling schema (redirects to GitHub)
 
 ## MCP Tools (6)
 - `lookup_wallet` — wallet info + trust score + stats

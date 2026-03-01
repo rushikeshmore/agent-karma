@@ -134,12 +134,30 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
     totalFound += logs.length
     blocksScanned += batchEnd - current + 1n
 
-    // Update indexer state
-    await sql`
-      INSERT INTO indexer_state (id, last_block, updated_at)
-      VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
-      ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
-    `
+    // Update indexer state (with retry — Neon may ECONNRESET)
+    try {
+      await sql`
+        INSERT INTO indexer_state (id, last_block, updated_at)
+        VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+        ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+      `
+    } catch (err: any) {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+        console.log(`  [mints/${cfg.label}] DB connection lost at block ${batchEnd}, retrying state save...`)
+        await sleep(3000)
+        try {
+          await sql`
+            INSERT INTO indexer_state (id, last_block, updated_at)
+            VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+            ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+          `
+        } catch {
+          console.log(`  [mints/${cfg.label}] State save retry failed. Progress up to block ${batchEnd} may need re-scan.`)
+        }
+      } else {
+        throw err
+      }
+    }
 
     // Progress log every 100 batches
     if (blocksScanned % (BATCH_SIZE * 100n) === 0n || logs.length > 0) {
@@ -217,11 +235,30 @@ async function indexFeedback(fromBlock: bigint, toBlock: bigint, cfg: ChainConfi
     totalFound += logs.length
     blocksScanned += batchEnd - current + 1n
 
-    await sql`
-      INSERT INTO indexer_state (id, last_block, updated_at)
-      VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
-      ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
-    `
+    // Update indexer state (with retry — Neon may ECONNRESET)
+    try {
+      await sql`
+        INSERT INTO indexer_state (id, last_block, updated_at)
+        VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+        ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+      `
+    } catch (err: any) {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+        console.log(`  [feedback/${cfg.label}] DB connection lost at block ${batchEnd}, retrying state save...`)
+        await sleep(3000)
+        try {
+          await sql`
+            INSERT INTO indexer_state (id, last_block, updated_at)
+            VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+            ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+          `
+        } catch {
+          console.log(`  [feedback/${cfg.label}] State save retry failed. Progress up to block ${batchEnd} may need re-scan.`)
+        }
+      } else {
+        throw err
+      }
+    }
 
     if (blocksScanned % (BATCH_SIZE * 100n) === 0n || logs.length > 0) {
       const pct = ((Number(blocksScanned) / Number(totalBlocks)) * 100).toFixed(1)
@@ -361,7 +398,27 @@ async function main() {
   await sql.end()
 }
 
-main().catch(async (err) => {
+async function mainWithRetry(maxRestarts = 5) {
+  for (let attempt = 1; attempt <= maxRestarts; attempt++) {
+    try {
+      await main()
+      return // Clean exit
+    } catch (err: any) {
+      const isRetryable = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED'
+      if (isRetryable && attempt < maxRestarts) {
+        const delay = 5000 * attempt
+        console.log(`\n[erc8004] Connection lost (${err.code}), restarting in ${delay / 1000}s... (attempt ${attempt}/${maxRestarts})`)
+        await sleep(delay)
+      } else {
+        console.error('Indexer failed:', err)
+        await sql.end()
+        process.exit(1)
+      }
+    }
+  }
+}
+
+mainWithRetry().catch(async (err) => {
   console.error('Indexer failed:', err)
   await sql.end()
   process.exit(1)

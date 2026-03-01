@@ -177,12 +177,30 @@ async function indexX402(fromBlock: bigint, toBlock: bigint, cfg: X402ChainConfi
 
     blocksScanned += batchEnd - current + 1n
 
-    // Update indexer state
-    await sql`
-      INSERT INTO indexer_state (id, last_block, updated_at)
-      VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
-      ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
-    `
+    // Update indexer state (with retry — Neon may ECONNRESET)
+    try {
+      await sql`
+        INSERT INTO indexer_state (id, last_block, updated_at)
+        VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+        ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+      `
+    } catch (err: any) {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+        console.log(`  [x402/${cfg.label}] DB connection lost at block ${batchEnd}, will resume from last saved state.`)
+        await sleep(3000)
+        try {
+          await sql`
+            INSERT INTO indexer_state (id, last_block, updated_at)
+            VALUES (${cfg.stateId}, ${Number(batchEnd)}, NOW())
+            ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
+          `
+        } catch {
+          console.log(`  [x402/${cfg.label}] State save retry failed. Progress up to block ${batchEnd} may need re-scan.`)
+        }
+      } else {
+        throw err
+      }
+    }
 
     // Progress log
     if (blocksScanned % (BATCH_SIZE * 50n) === 0n || authLogs.length > 0) {
@@ -295,7 +313,27 @@ async function main() {
   await sql.end()
 }
 
-main().catch(async (err) => {
+async function mainWithRetry(maxRestarts = 5) {
+  for (let attempt = 1; attempt <= maxRestarts; attempt++) {
+    try {
+      await main()
+      return // Clean exit
+    } catch (err: any) {
+      const isRetryable = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED'
+      if (isRetryable && attempt < maxRestarts) {
+        const delay = 5000 * attempt
+        console.log(`\n[x402] Connection lost (${err.code}), restarting in ${delay / 1000}s... (attempt ${attempt}/${maxRestarts})`)
+        await sleep(delay)
+      } else {
+        console.error('Indexer failed:', err)
+        await sql.end()
+        process.exit(1)
+      }
+    }
+  }
+}
+
+mainWithRetry().catch(async (err) => {
   console.error('Indexer failed:', err)
   await sql.end()
   process.exit(1)

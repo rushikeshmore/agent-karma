@@ -22,7 +22,7 @@ app.onError((err, c) => {
 
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (path === '/' || path === '/api-keys' || path === '/openapi.json') return next()
+  if (path === '/' || path === '/api-keys' || path === '/openapi.json' || path === '/openai-functions.json') return next()
 
   const apiKey = c.req.header('x-api-key')
 
@@ -89,6 +89,14 @@ app.get('/openapi.json', async (c) => {
   const yaml = await readFile(resolve(import.meta.dirname ?? '.', '../../openapi.yaml'), 'utf-8')
   const { parse } = await import('yaml')
   return c.json(parse(yaml))
+})
+
+// OpenAI function-calling schema endpoint
+app.get('/openai-functions.json', async (c) => {
+  const { readFile } = await import('fs/promises')
+  const { resolve } = await import('path')
+  const json = await readFile(resolve(import.meta.dirname ?? '.', '../../openai-functions.json'), 'utf-8')
+  return c.json(JSON.parse(json))
 })
 
 const TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/
