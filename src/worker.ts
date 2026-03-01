@@ -38,7 +38,7 @@ app.onError((err, c) => {
 // 25 requests per 10 seconds per IP. Catches scrapers/bots. Zero latency.
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (path === '/' || path === '/openapi.json') return next()
+  if (path === '/' || path === '/openapi.json' || path === '/openai-functions.json') return next()
 
   if (c.env.RATE_LIMITER) {
     const ip = c.req.header('cf-connecting-ip') || 'unknown'
@@ -60,7 +60,7 @@ app.use('*', async (c, next) => {
 
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (path === '/' || path === '/api-keys' || path === '/openapi.json') return next()
+  if (path === '/' || path === '/api-keys' || path === '/openapi.json' || path === '/openai-functions.json') return next()
 
   const sql = getSQL(c)
   const apiKey = c.req.header('x-api-key')
@@ -92,6 +92,11 @@ app.use('*', async (c, next) => {
 // OpenAPI spec — redirect to GitHub raw
 app.get('/openapi.json', (c) => {
   return c.redirect('https://raw.githubusercontent.com/rushikeshmore/agent-karma/main/openapi.yaml')
+})
+
+// OpenAI function-calling schema — redirect to GitHub raw
+app.get('/openai-functions.json', (c) => {
+  return c.redirect('https://raw.githubusercontent.com/rushikeshmore/agent-karma/main/openai-functions.json')
 })
 
 const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/

@@ -1,0 +1,249 @@
+{
+  "functions": [
+    {
+      "name": "get_trust_score",
+      "description": "Get the trust score for an AI agent wallet address. Returns a 0-100 score, tier (HIGH/MEDIUM/LOW/MINIMAL), percentile rank, and breakdown of 7 scoring signals. Use this to check if an AI agent wallet is trustworthy before transacting.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "EVM wallet address (0x + 40 hex characters)"
+          }
+        },
+        "required": ["address"]
+      }
+    },
+    {
+      "name": "get_wallet_details",
+      "description": "Get full wallet details including source (erc8004/x402), chain, transaction count, trust score, role (buyer/seller/both), and associated stats.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "EVM wallet address"
+          }
+        },
+        "required": ["address"]
+      }
+    },
+    {
+      "name": "get_wallet_transactions",
+      "description": "Get transaction history for a wallet. Returns x402 payment records with payer, recipient, USDC amount, and block info.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "EVM wallet address"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of transactions to return (max 100)",
+            "default": 25
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Pagination offset",
+            "default": 0
+          }
+        },
+        "required": ["address"]
+      }
+    },
+    {
+      "name": "get_wallet_feedback",
+      "description": "Get on-chain reputation feedback history for a wallet from ERC-8004 ReputationRegistry events.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "EVM wallet address"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of feedback entries to return (max 100)",
+            "default": 25
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Pagination offset",
+            "default": 0
+          }
+        },
+        "required": ["address"]
+      }
+    },
+    {
+      "name": "get_score_history",
+      "description": "Get the trust score trend over time for a wallet. Useful for detecting improving or declining agent behavior.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "EVM wallet address"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of history entries to return (max 100)",
+            "default": 20
+          }
+        },
+        "required": ["address"]
+      }
+    },
+    {
+      "name": "list_wallets",
+      "description": "Browse indexed AI agent wallets. Filter by source (erc8004/x402), score range, and sort by score or transaction count. Use this to discover agents.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["erc8004", "x402", "both"],
+            "description": "Filter by wallet source type"
+          },
+          "sort": {
+            "type": "string",
+            "enum": ["score", "tx_count"],
+            "description": "Sort field",
+            "default": "tx_count"
+          },
+          "score_min": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Minimum trust score filter"
+          },
+          "score_max": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Maximum trust score filter"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of wallets to return (max 100)",
+            "default": 50
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Pagination offset",
+            "default": 0
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "get_leaderboard",
+      "description": "Get the top AI agent wallets ranked by trust score. Shows the most trustworthy agents across the network.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Number of top wallets to return (max 100)",
+            "default": 20
+          },
+          "source": {
+            "type": "string",
+            "enum": ["erc8004", "x402", "both"],
+            "description": "Filter by wallet source type"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "batch_trust_scores",
+      "description": "Look up trust scores for multiple wallet addresses at once (max 100). Returns scores for found wallets and lists not-found addresses separately.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "maxItems": 100,
+            "description": "Array of EVM wallet addresses to look up"
+          }
+        },
+        "required": ["addresses"]
+      }
+    },
+    {
+      "name": "submit_feedback",
+      "description": "Submit a trust feedback rating (1-5) for a specific transaction. The address must be a party to the transaction. This flags the wallet for rescoring.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "Wallet address to rate (must be payer or recipient of the transaction)"
+          },
+          "tx_hash": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{64}$",
+            "description": "Transaction hash"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Trust rating (1=worst, 5=best)"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Optional feedback comment"
+          }
+        },
+        "required": ["address", "tx_hash", "rating"]
+      }
+    },
+    {
+      "name": "get_stats",
+      "description": "Get AgentKarma database statistics: wallet counts by source, total transactions, feedback count, score distribution by tier, database size, and indexer state.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "metadata": {
+    "name": "AgentKarma",
+    "description": "Credit bureau for AI agent wallets. Scores EVM wallet addresses for trustworthiness using public blockchain data from ERC-8004 registrations and x402 payments.",
+    "version": "0.5.0",
+    "base_url": "https://agent-karma.rushikeshmore271.workers.dev",
+    "auth": {
+      "type": "api_key",
+      "header": "x-api-key",
+      "description": "Optional. Anonymous access is rate-limited. Get a free key (1000 req/day) via POST /api-keys."
+    },
+    "endpoint_mapping": {
+      "get_trust_score": "GET /score/{address}",
+      "get_wallet_details": "GET /wallet/{address}",
+      "get_wallet_transactions": "GET /wallet/{address}/transactions",
+      "get_wallet_feedback": "GET /wallet/{address}/feedback",
+      "get_score_history": "GET /wallet/{address}/score-history",
+      "list_wallets": "GET /wallets",
+      "get_leaderboard": "GET /leaderboard",
+      "batch_trust_scores": "POST /wallets/batch-scores",
+      "submit_feedback": "POST /feedback",
+      "get_stats": "GET /stats"
+    }
+  }
+}
