@@ -153,10 +153,11 @@ curl https://agent-karma.rushikeshmore271.workers.dev/stats
 | `POST` | `/feedback` | Submit feedback for a transaction |
 | `POST` | `/api-keys` | Generate a free API key (1,000 req/day) |
 | `GET` | `/openapi.json` | OpenAPI 3.0 spec |
+| `GET` | `/openai-functions.json` | OpenAI function-calling schema |
 
 ### Authentication
 
-No key needed to get started. Anonymous requests get 100/day. Create a free API key for 1,000/day:
+No key needed to get started. Anonymous requests are rate-limited by Cloudflare (25 req/10s burst). Create a free API key for tracked usage at 1,000 req/day:
 
 ```bash
 curl -X POST https://agent-karma.rushikeshmore271.workers.dev/api-keys \
@@ -257,7 +258,7 @@ agent-karma/
 │   ├── db/            # Postgres client and migrations
 │   ├── indexer/       # ERC-8004 + x402 indexers, CU budget tracker
 │   ├── scoring/       # 7-signal trust score engine
-│   ├── api/           # Hono REST API (13 endpoints)
+│   ├── api/           # Hono REST API (14 endpoints)
 │   ├── mcp/           # MCP server (6 tools)
 │   └── worker.ts      # Cloudflare Workers entry point
 ├── sdk/               # npm package: agentkarma

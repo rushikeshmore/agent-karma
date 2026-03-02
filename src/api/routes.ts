@@ -7,7 +7,7 @@ const app = new Hono()
 
 app.use('*', cors({
   origin: ['https://agentkarma.dev', 'https://www.agentkarma.dev', 'http://localhost:3000', 'http://localhost:3001'],
-  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'x-api-key'],
 }))
 
@@ -49,7 +49,6 @@ app.use('*', async (c, next) => {
       }, 429)
     }
 
-    c.set('apiKeyTier' as any, keys[0].tier)
   }
   // Anonymous requests pass through — rate limiting handled by Cloudflare
 
