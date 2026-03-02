@@ -3,21 +3,21 @@ startCommand:
   configSchema:
     type: object
     properties:
-      DATABASE_URL:
+      neon_db_key:
         type: string
         description: "Neon Postgres connection string"
-      ALCHEMY_API_KEY:
+      alchemy_key:
         type: string
         description: "Alchemy API key for blockchain RPC"
     required:
-      - DATABASE_URL
-      - ALCHEMY_API_KEY
+      - neon_db_key
+      - alchemy_key
   commandFunction: |
     (config) => ({
       command: 'npx',
       args: ['tsx', 'src/mcp/server.ts'],
       env: {
-        DATABASE_URL: config.DATABASE_URL,
-        ALCHEMY_API_KEY: config.ALCHEMY_API_KEY
+        neon_db_key: config.neon_db_key,
+        alchemy_key: config.alchemy_key
       }
     })

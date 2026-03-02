@@ -38,7 +38,7 @@
     "url": "git+https://github.com/rushikeshmore/agent-karma.git",
     "directory": "sdk"
   },
-  "homepage": "https://github.com/rushikeshmore/agent-karma",
+  "homepage": "https://agentkarma.dev",
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

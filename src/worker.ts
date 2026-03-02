@@ -25,7 +25,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', cors({
   origin: ['https://agentkarma.dev', 'https://www.agentkarma.dev', 'http://localhost:3000', 'http://localhost:3001'],
-  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'x-api-key'],
 }))
 

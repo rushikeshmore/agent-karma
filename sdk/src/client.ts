@@ -260,37 +260,6 @@ export class AgentKarma {
     return this.fetch<ListWalletsResponse>(`/wallets${qs ? '?' + qs : ''}`)
   }
 
-  private async delete<T>(path: string): Promise<T> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeout)
-
-    try {
-      const res = await fetch(`${this.baseUrl}${path}`, {
-        method: 'DELETE',
-        signal: controller.signal,
-        headers: this.getHeaders(),
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new AgentKarmaError(
-          `HTTP ${res.status}: ${text || res.statusText}`,
-          res.status,
-        )
-      }
-
-      return (await res.json()) as T
-    } catch (err: any) {
-      if (err instanceof AgentKarmaError) throw err
-      if (err.name === 'AbortError') {
-        throw new AgentKarmaError('Request timed out', 0)
-      }
-      throw new AgentKarmaError(err.message ?? 'Network error', 0)
-    } finally {
-      clearTimeout(timer)
-    }
-  }
-
 }
 
 export class AgentKarmaError extends Error {

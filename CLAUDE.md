@@ -77,5 +77,9 @@ Every API route exists in BOTH:
 - Scoring: 49 tests (all 7 signals, edge cases, NaN guards, Sybil cap)
 - SDK: 26 tests (all methods, error handling, param mapping)
 
+## SDK Public Methods (11)
+- `getScore`, `isHighTrust`, `meetsThreshold`, `batchScores`, `lookupWallet`
+- `getTransactions`, `getScoreHistory`, `getLeaderboard`, `listWallets`, `getStats`, `submitFeedback`
+
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)
