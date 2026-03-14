@@ -125,7 +125,7 @@ function getSQL(c: { env: Bindings }) {
 app.get('/', (c) =>
   c.json({
     name: 'AgentKarma',
-    version: '0.5.0',
+    version: '0.6.0',
     description: 'Credit bureau for AI agent wallets',
     runtime: 'cloudflare-workers',
   })
@@ -219,11 +219,11 @@ app.post('/feedback', async (c) => {
   `
   const agentId = walletRows.length > 0 && walletRows[0].erc8004_id != null
     ? walletRows[0].erc8004_id
-    : 0
+    : null
 
   const result = await sql`
     INSERT INTO feedback (agent_id, client_address, feedback_index, value, value_decimals, block_number, tx_hash, source, target_address)
-    VALUES (${agentId}, ${validAddress}, 0, ${rating}, 0, ${tx.block_number}, ${tx_hash.toLowerCase()}, 'api', ${validAddress})
+    VALUES (${agentId ?? 0}, ${validAddress}, 0, ${rating}, 0, ${tx.block_number}, ${tx_hash.toLowerCase()}, 'api', ${validAddress})
     RETURNING id
   `
 
@@ -343,8 +343,8 @@ app.get('/wallet/:address', async (c) => {
   `
   const feedbackCount = await sql`
     SELECT COUNT(*)::int as count FROM feedback f
-    JOIN wallets w ON f.agent_id = w.erc8004_id
-    WHERE w.address = ${address}
+    LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
+    WHERE w.address = ${address} OR f.target_address = ${address}
   `
 
   return c.json({
@@ -450,8 +450,8 @@ app.get('/wallet/:address/feedback', async (c) => {
 
   const fb = await sql`
     SELECT f.* FROM feedback f
-    JOIN wallets w ON f.agent_id = w.erc8004_id
-    WHERE w.address = ${address}
+    LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
+    WHERE w.address = ${address} OR f.target_address = ${address}
     ORDER BY f.block_number DESC
     LIMIT ${limit} OFFSET ${offset}
   `

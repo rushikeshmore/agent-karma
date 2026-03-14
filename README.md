@@ -1,6 +1,9 @@
 # AgentKarma
 
-**Credit bureau for AI agent wallets.**
+[![npm version](https://img.shields.io/npm/v/agentkarma)](https://www.npmjs.com/package/agentkarma)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+**Credit bureau for AI agent wallets.** [agentkarma.dev](https://agentkarma.dev)
 
 AI agents are transacting on their own now. They pay each other, buy services, settle invoices, all through crypto wallets. But there's no way to tell if the wallet on the other side is legit.
 
@@ -191,15 +194,13 @@ Add to Claude Desktop (`claude_desktop_config.json`):
     "agent-karma": {
       "command": "npx",
       "args": ["tsx", "src/mcp/server.ts"],
-      "cwd": "/path/to/agent-karma",
-      "env": {
-        "alchemy_key": "YOUR_KEY",
-        "neon_db_key": "YOUR_CONNECTION_STRING"
-      }
+      "cwd": "/path/to/agent-karma"
     }
   }
 }
 ```
+
+The MCP server reads credentials from a `.env` file in the project root (see `.env.example`). No need to pass env vars in the config.
 
 ---
 
@@ -277,6 +278,12 @@ agent-karma/
 | MCP | [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
 | RPC | [Alchemy](https://www.alchemy.com/) (Ethereum, Base, Arbitrum) |
 | Hosting | Cloudflare Workers |
+
+## SDK
+
+The TypeScript SDK is published as [`agentkarma`](https://www.npmjs.com/package/agentkarma) on npm. Zero dependencies, full types, works everywhere.
+
+See [`sdk/README.md`](sdk/README.md) for the complete API reference.
 
 ## License
 

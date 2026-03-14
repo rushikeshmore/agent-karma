@@ -142,6 +142,12 @@ async function migrate() {
   `
   console.log('  api_usage table ready')
 
+  // --- v0.6: performance indexes ---
+  await sql`CREATE INDEX IF NOT EXISTS idx_wallets_trust_score ON wallets(trust_score DESC) WHERE trust_score IS NOT NULL`
+  await sql`CREATE INDEX IF NOT EXISTS idx_wallets_source_score ON wallets(source, trust_score DESC) WHERE trust_score IS NOT NULL`
+  await sql`CREATE INDEX IF NOT EXISTS idx_fb_target_address ON feedback(target_address) WHERE target_address IS NOT NULL`
+  console.log('  v0.6 performance indexes ready')
+
   // --- check DB size ---
   const sizeResult = await sql`SELECT pg_database_size(current_database()) as size`
   const sizeMB = (Number(sizeResult[0].size) / 1024 / 1024).toFixed(1)

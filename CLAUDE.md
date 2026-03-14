@@ -30,7 +30,7 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - ReputationRegistry: `0x8004BAa1...` (Ethereum block 24339925, Base block ~26000000)
 - USDC on Base: `0x833589fC...`
 
-## API Endpoints (v0.5.0)
+## API Endpoints (v0.6.0)
 - `GET /` — health check
 - `GET /score/:address` — trust score with tier + breakdown
 - `GET /wallet/:address` — full wallet detail + stats
