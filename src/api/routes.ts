@@ -98,6 +98,14 @@ app.get('/openai-functions.json', async (c) => {
   return c.json(JSON.parse(json))
 })
 
+// Postgres.js typically returns JSONB as objects, but parse defensively
+function parseJsonb(val: unknown): unknown {
+  if (typeof val === 'string') {
+    try { return JSON.parse(val) } catch { return val }
+  }
+  return val
+}
+
 const TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/
 
 function computeTier(score: number): string {
@@ -134,6 +142,7 @@ app.post('/wallets/batch-scores', async (c) => {
   for (const w of wallets) {
     foundMap.set(w.address, {
       ...w,
+      score_breakdown: parseJsonb(w.score_breakdown),
       tier: w.trust_score != null ? computeTier(w.trust_score) : null,
     })
   }
@@ -224,7 +233,13 @@ app.get('/wallets', async (c) => {
 
   const total = await sql`SELECT COUNT(*)::int as count FROM wallets ${where}`
 
-  return c.json({ wallets, total: total[0].count, limit, offset, sort })
+  const parsed = wallets.map((w: any) => ({
+    ...w,
+    score_breakdown: parseJsonb(w.score_breakdown),
+    tier: w.trust_score != null ? computeTier(w.trust_score) : null,
+  }))
+
+  return c.json({ wallets: parsed, total: total[0].count, limit, offset, sort })
 })
 
 // Leaderboard — top wallets by trust score
@@ -252,6 +267,8 @@ app.get('/leaderboard', async (c) => {
     leaderboard: wallets.map((w: any, i: number) => ({
       rank: i + 1,
       ...w,
+      score_breakdown: parseJsonb(w.score_breakdown),
+      tier: computeTier(w.trust_score),
     })),
   })
 })
@@ -274,8 +291,14 @@ app.get('/wallet/:address', async (c) => {
     WHERE w.address = ${address} OR f.target_address = ${address}
   `
 
+  const w = wallet[0]
+  const { needs_rescore, id, ...walletData } = w
   return c.json({
-    wallet: wallet[0],
+    wallet: {
+      ...walletData,
+      score_breakdown: parseJsonb(w.score_breakdown),
+      tier: w.trust_score != null ? computeTier(w.trust_score) : null,
+    },
     stats: {
       transactions: txCount[0].count,
       feedback: feedbackCount[0].count,
@@ -317,7 +340,7 @@ app.get('/score/:address', async (c) => {
       tier: null,
       percentile: null,
       role: w.role ?? null,
-      message: 'Score not yet computed. Run: npm run score',
+      message: 'Score not yet computed. Check back later.',
     })
   }
 
@@ -339,7 +362,7 @@ app.get('/score/:address', async (c) => {
     trust_score: w.trust_score,
     tier,
     percentile,
-    breakdown: w.score_breakdown,
+    breakdown: parseJsonb(w.score_breakdown),
     scored_at: w.scored_at,
     source: w.source,
     tx_count: w.tx_count,
