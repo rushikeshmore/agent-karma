@@ -26,7 +26,7 @@ import sql from '../db/client.js'
 
 const server = new McpServer({
   name: 'agent-karma',
-  version: '0.5.0',
+  version: '0.6.0',
   description: 'Credit bureau for AI agent wallets. Look up trust data for any wallet address.',
 })
 
@@ -57,8 +57,8 @@ server.registerTool(
     const txCount = await sql`SELECT COUNT(*) as count FROM transactions WHERE payer = ${addr} OR recipient = ${addr}`
     const feedbackCount = await sql`
       SELECT COUNT(*) as count FROM feedback f
-      JOIN wallets w ON f.agent_id = w.erc8004_id
-      WHERE w.address = ${addr}
+      LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
+      WHERE w.address = ${addr} OR f.target_address = ${addr}
     `
 
     return {
@@ -126,8 +126,8 @@ server.registerTool(
         COUNT(*) as total_feedback,
         AVG(value::numeric) as avg_value
       FROM feedback f
-      JOIN wallets w ON f.agent_id = w.erc8004_id
-      WHERE w.address = ${addr}
+      LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
+      WHERE w.address = ${addr} OR f.target_address = ${addr}
     `
 
     // Recent transactions (last 5)

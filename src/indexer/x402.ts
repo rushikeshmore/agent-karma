@@ -65,7 +65,8 @@ async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3)
     } catch (err: any) {
       const status = err?.status ?? err?.cause?.status
       const isRetryable = status === 429 || status === 502 || status === 503 ||
-        err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'UND_ERR_SOCKET'
+        err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'UND_ERR_SOCKET' ||
+        err.name === 'TimeoutError' || err.name === 'AbortError'
       if (isRetryable && attempt < maxRetries) {
         const delay = 1000 * Math.pow(2, attempt - 1)
         console.log(`  [${label}] Retryable error (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`)
@@ -185,7 +186,7 @@ async function indexX402(fromBlock: bigint, toBlock: bigint, cfg: X402ChainConfi
         ON CONFLICT (id) DO UPDATE SET last_block = ${Number(batchEnd)}, updated_at = NOW()
       `
     } catch (err: any) {
-      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
         console.log(`  [x402/${cfg.label}] DB connection lost at block ${batchEnd}, will resume from last saved state.`)
         await sleep(3000)
         try {
@@ -319,7 +320,8 @@ async function mainWithRetry(maxRestarts = 5) {
       await main()
       return // Clean exit
     } catch (err: any) {
-      const isRetryable = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED'
+      const isRetryable = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' ||
+        err.name === 'TimeoutError' || err.name === 'AbortError'
       if (isRetryable && attempt < maxRestarts) {
         const delay = 5000 * attempt
         console.log(`\n[x402] Connection lost (${err.code}), restarting in ${delay / 1000}s... (attempt ${attempt}/${maxRestarts})`)
