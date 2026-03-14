@@ -237,12 +237,12 @@ describe('feedbackScore', () => {
 // --- volumeScore ---
 
 describe('volumeScore', () => {
-  it('returns 50 (neutral) with no volume', () => {
-    expect(volumeScore(0, 0)).toBe(50)
+  it('returns 0 with no volume data', () => {
+    expect(volumeScore(0, 0)).toBe(0)
   })
 
-  it('returns 50 with negative volume', () => {
-    expect(volumeScore(-100, 5)).toBe(50)
+  it('returns 0 with negative volume', () => {
+    expect(volumeScore(-100, 5)).toBe(0)
   })
 
   it('returns ~50 for $100 avg deal size', () => {
@@ -337,11 +337,11 @@ describe('computeScore', () => {
     }
   })
 
-  it('volume defaults to neutral (50) when no volume data', () => {
+  it('volume defaults to 0 when no volume data', () => {
     const { breakdown } = computeScore(makeWallet({
       total_volume_usdc: 0,
       volume_counterparties: 0,
     }))
-    expect(breakdown.volume).toBe(50)
+    expect(breakdown.volume).toBe(0)
   })
 })

@@ -46,18 +46,19 @@ Credit bureau for AI agent wallets. Scores wallet addresses for trustworthiness 
 - `GET /openapi.json` — OpenAPI 3.0 spec (redirects to GitHub)
 - `GET /openai-functions.json` — OpenAI function-calling schema (redirects to GitHub)
 
-## MCP Tools (6)
-- `lookup_wallet` — wallet info + trust score + stats
-- `get_wallet_trust_signals` — trust indicators (tx history, counterparties, feedback)
-- `get_trust_score` — quick 0-100 score check with tier + breakdown
+## MCP Tools (7) — API client, no DB required
+- `get_trust_score` — primary: 0-100 score with tier, percentile, breakdown
+- `lookup_wallet` — wallet identity, metadata, tx/feedback counts
+- `get_wallet_trust_signals` — deep analysis: score + recent transactions with roles
 - `batch_trust_scores` — batch lookup for multiple wallets
 - `list_wallets` — browse indexed wallets by source
-- `agentkarma_stats` — database statistics
+- `submit_feedback` — rate a wallet after a transaction (1-5 stars)
+- `agentkarma_stats` — platform statistics
 
 ## Scoring Algorithm (v3)
 7 weighted signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%)
 +5 bonus for ERC-8004 registered agents. Sybil resistance on loyalty signal (cap at 40 when avgTxPerPartner >= 20 with < 3 counterparties).
-Age uses log-scale (early days matter more). Volume defaults to neutral when no data.
+Age uses log-scale (early days matter more). Volume defaults to 0 when no data.
 Incremental scoring via `needs_rescore` flag. Score history tracked per run.
 Bulk UPDATE via unnest arrays (1 SQL per batch of 500, not per row).
 

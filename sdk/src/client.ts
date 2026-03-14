@@ -41,66 +41,71 @@ export class AgentKarma {
     return headers
   }
 
-  private async fetch<T>(path: string): Promise<T> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeout)
+  private async request<T>(path: string, options?: RequestInit): Promise<T> {
+    let lastError: AgentKarmaError | undefined
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), this.timeout)
 
-    try {
-      const res = await fetch(`${this.baseUrl}${path}`, {
-        signal: controller.signal,
-        headers: this.getHeaders(),
-      })
+      try {
+        const res = await fetch(`${this.baseUrl}${path}`, {
+          ...options,
+          signal: controller.signal,
+          headers: { ...this.getHeaders(), ...options?.headers },
+        })
 
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        throw new AgentKarmaError(
-          `HTTP ${res.status}: ${body || res.statusText}`,
-          res.status,
-        )
+        if (!res.ok) {
+          const body = await res.text().catch(() => '')
+          const err = new AgentKarmaError(
+            `HTTP ${res.status}: ${body || res.statusText}`,
+            res.status,
+          )
+          // Retry on 503 (service unavailable) or 429 (rate limited)
+          if (attempt === 0 && (res.status === 503 || res.status === 429)) {
+            lastError = err
+            clearTimeout(timer)
+            await new Promise(r => setTimeout(r, 1000))
+            continue
+          }
+          throw err
+        }
+
+        return (await res.json()) as T
+      } catch (err: any) {
+        clearTimeout(timer)
+        if (err instanceof AgentKarmaError) {
+          if (attempt === 0 && (err.status === 503 || err.status === 429)) {
+            lastError = err
+            await new Promise(r => setTimeout(r, 1000))
+            continue
+          }
+          throw err
+        }
+        if (err.name === 'AbortError') {
+          const timeoutErr = new AgentKarmaError('Request timed out', 0)
+          if (attempt === 0) { lastError = timeoutErr; continue }
+          throw timeoutErr
+        }
+        const networkErr = new AgentKarmaError(err.message ?? 'Network error', 0)
+        if (attempt === 0) { lastError = networkErr; continue }
+        throw networkErr
+      } finally {
+        clearTimeout(timer)
       }
-
-      return (await res.json()) as T
-    } catch (err: any) {
-      if (err instanceof AgentKarmaError) throw err
-      if (err.name === 'AbortError') {
-        throw new AgentKarmaError('Request timed out', 0)
-      }
-      throw new AgentKarmaError(err.message ?? 'Network error', 0)
-    } finally {
-      clearTimeout(timer)
     }
+    throw lastError ?? new AgentKarmaError('Request failed after retry', 0)
+  }
+
+  private async fetch<T>(path: string): Promise<T> {
+    return this.request<T>(path)
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeout)
-
-    try {
-      const res = await fetch(`${this.baseUrl}${path}`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { ...this.getHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new AgentKarmaError(
-          `HTTP ${res.status}: ${text || res.statusText}`,
-          res.status,
-        )
-      }
-
-      return (await res.json()) as T
-    } catch (err: any) {
-      if (err instanceof AgentKarmaError) throw err
-      if (err.name === 'AbortError') {
-        throw new AgentKarmaError('Request timed out', 0)
-      }
-      throw new AgentKarmaError(err.message ?? 'Network error', 0)
-    } finally {
-      clearTimeout(timer)
-    }
+    return this.request<T>(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
   }
 
   /**

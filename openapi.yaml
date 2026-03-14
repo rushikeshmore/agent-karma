@@ -298,7 +298,7 @@ components:
         trust_score: { type: integer, nullable: true, minimum: 0, maximum: 100 }
         tier: { type: string, nullable: true, enum: [HIGH, MEDIUM, LOW, MINIMAL] }
         percentile: { type: integer, nullable: true, description: 'Percentile rank (0-100). "Better than X% of indexed wallets"' }
-        breakdown:
+        score_breakdown:
           $ref: '#/components/schemas/ScoreBreakdown'
         scored_at: { type: string, format: date-time, nullable: true }
         source: { type: string, enum: [erc8004, x402, both] }

@@ -119,7 +119,7 @@ export function feedbackScore(avgFeedback: number | null, feedbackCount: number)
  * $1→7.5, $10→25, $100→50, $1000→75, $10000→100
  */
 export function volumeScore(totalVolumeUSDC: number, counterparties: number): number {
-  if (totalVolumeUSDC <= 0 || counterparties <= 0) return 50 // neutral, like feedback
+  if (totalVolumeUSDC <= 0 || counterparties <= 0) return 0 // no commerce data
   const avgDealSize = totalVolumeUSDC / counterparties
   return Math.min(100, (Math.log10(avgDealSize + 1) / Math.log10(10001)) * 100)
 }
@@ -392,7 +392,7 @@ async function main() {
         break // success
       } catch (err: any) {
         retries--
-        if (retries > 0 && (err.code === 'ETIMEDOUT' || err.code === 'CONNECTION_CLOSED' || err.code === 'CONNECT_TIMEOUT')) {
+        if (retries > 0 && (err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'CONNECTION_CLOSED' || err.code === 'CONNECT_TIMEOUT')) {
           console.log(`  Connection error at batch ${i / BATCH_SIZE + 1}, retrying in 3s... (${retries} left)`)
           await new Promise(r => setTimeout(r, 3000))
         } else {

@@ -58,7 +58,7 @@ const result = await karma.getScore('0x691ddc82fcbb965b9c03b035389c8a68c1014faf'
 //   trust_score: 84,
 //   tier: 'HIGH',
 //   percentile: 92,
-//   breakdown: { loyalty: 90, activity: 80, diversity: 70, ... },
+//   score_breakdown: { loyalty: 90, activity: 80, diversity: 70, ... },
 //   scored_at: '2026-01-15T...',
 //   source: 'erc8004',
 //   tx_count: 42,
@@ -78,7 +78,7 @@ if (await karma.isHighTrust('0x...')) {
 
 ### `meetsThreshold(address, minScore): Promise<boolean>`
 
-Check if a wallet meets a minimum score. Unscored wallets are treated as 0.
+Check if a wallet meets a minimum score. **Unscored wallets (null trust_score) are treated as 0** — so `meetsThreshold('0x...', 0)` returns `true` for unscored wallets.
 
 ```typescript
 if (await karma.meetsThreshold('0x...', 50)) {
@@ -151,8 +151,14 @@ Platform statistics: wallet counts, transactions, score distribution, database u
 
 ```typescript
 const stats = await karma.getStats()
-console.log(stats.transactions)     // 22000
-console.log(stats.db_size_mb)       // '28.5'
+console.log(stats.transactions)     // 152937
+console.log(stats.db_size_mb)       // '95.1'
+
+// stats.wallets is an array of { source, count } objects:
+// [{ source: 'x402', count: 5439 }, { source: 'erc8004', count: 7115 }, ...]
+for (const w of stats.wallets) {
+  console.log(`${w.source}: ${w.count} wallets`)
+}
 ```
 
 ### `submitFeedback(params): Promise<FeedbackResponse>`

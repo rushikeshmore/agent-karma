@@ -22,7 +22,7 @@ export interface TrustScore {
   trust_score: number | null
   tier: ScoreTier | null
   percentile: number | null
-  breakdown: ScoreBreakdown | null
+  score_breakdown: ScoreBreakdown | null
   scored_at: string | null
   source: string
   tx_count: number
