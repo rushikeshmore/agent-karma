@@ -19,7 +19,7 @@ const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
 
 function assertAddress(address: string): string {
   if (!ETH_ADDRESS_RE.test(address)) {
-    throw new AgentKarmaError('Invalid address format. Expected 0x + 40 hex characters.', 0)
+    throw new AgentKarmaError('Invalid address format. Expected 0x + 40 hex characters.', 400)
   }
   return address.toLowerCase()
 }

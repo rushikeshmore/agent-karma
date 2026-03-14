@@ -365,7 +365,7 @@ app.get('/wallet/:address', async (c) => {
   `
 
   const w = wallet[0]
-  const { needs_rescore, id, ...walletData } = w
+  const { needs_rescore, id, first_seen_block, created_at, ...walletData } = w
   return c.json({
     wallet: {
       ...walletData,
