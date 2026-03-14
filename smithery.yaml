@@ -3,21 +3,13 @@ startCommand:
   configSchema:
     type: object
     properties:
-      neon_db_key:
+      api_url:
         type: string
-        description: "Neon Postgres connection string"
-      alchemy_key:
-        type: string
-        description: "Alchemy API key for blockchain RPC"
-    required:
-      - neon_db_key
-      - alchemy_key
+        description: "AgentKarma API URL (optional, defaults to public API)"
+    required: []
   commandFunction: |
     (config) => ({
       command: 'npx',
       args: ['tsx', 'src/mcp/server.ts'],
-      env: {
-        neon_db_key: config.neon_db_key,
-        alchemy_key: config.alchemy_key
-      }
+      env: config.api_url ? { AGENTKARMA_API_URL: config.api_url } : {}
     })

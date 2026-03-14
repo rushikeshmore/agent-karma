@@ -115,7 +115,7 @@ function computeTier(score: number): string {
 // Batch scores — look up multiple wallets at once
 app.post('/wallets/batch-scores', async (c) => {
   let body: any
-  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
+  try { body = await c.req.json() } catch (e: any) { return c.json({ error: `Invalid JSON body: ${e.message ?? 'parse error'}` }, 400) }
   const { addresses } = body
 
   if (!Array.isArray(addresses) || addresses.length === 0) {
@@ -156,7 +156,7 @@ app.post('/wallets/batch-scores', async (c) => {
 // Submit feedback for a transaction
 app.post('/feedback', async (c) => {
   let body: any
-  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
+  try { body = await c.req.json() } catch (e: any) { return c.json({ error: `Invalid JSON body: ${e.message ?? 'parse error'}` }, 400) }
   const { address, tx_hash, rating, comment } = body
 
   if (comment != null && (typeof comment !== 'string' || comment.length > 1000)) {
@@ -362,7 +362,7 @@ app.get('/score/:address', async (c) => {
     trust_score: w.trust_score,
     tier,
     percentile,
-    breakdown: parseJsonb(w.score_breakdown),
+    score_breakdown: parseJsonb(w.score_breakdown),
     scored_at: w.scored_at,
     source: w.source,
     tx_count: w.tx_count,
@@ -443,7 +443,7 @@ app.get('/stats', async (c) => {
 // Generate API key
 app.post('/api-keys', async (c) => {
   let body: any
-  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON body' }, 400) }
+  try { body = await c.req.json() } catch (e: any) { return c.json({ error: `Invalid JSON body: ${e.message ?? 'parse error'}` }, 400) }
 
   const { name } = body
   if (!name || typeof name !== 'string' || name.trim().length < 2) {

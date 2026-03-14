@@ -104,7 +104,7 @@ const karma = new AgentKarma()
 const safe = await karma.isHighTrust('0x...')
 
 // Full score with breakdown
-const { trust_score, tier, role, breakdown } = await karma.getScore('0x...')
+const { trust_score, tier, role, score_breakdown } = await karma.getScore('0x...')
 
 // Custom threshold
 const meets = await karma.meetsThreshold('0x...', 60)
@@ -180,12 +180,14 @@ npm run mcp
 
 | Tool | Description |
 | --- | --- |
-| `get_trust_score` | Quick score check with tier and breakdown |
-| `lookup_wallet` | Full wallet info, agent ID, scores, stats |
-| `get_wallet_trust_signals` | Deep signals: counterparties, volume, feedback, recent txns |
+| `get_trust_score` | Quick score check with tier, percentile, and breakdown |
+| `lookup_wallet` | Full wallet identity, metadata, transaction and feedback counts |
+| `get_wallet_trust_signals` | Deep analysis: score + recent transactions with roles |
 | `batch_trust_scores` | Batch lookup for multiple wallets (max 100) |
 | `list_wallets` | Browse indexed wallets by source |
-| `agentkarma_stats` | Database statistics |
+| `submit_feedback` | Rate a wallet after a transaction (1-5 stars) |
+| `agentkarma_stats` | Platform statistics |
+
 Add to Claude Desktop (`claude_desktop_config.json`):
 
 ```json
@@ -200,7 +202,7 @@ Add to Claude Desktop (`claude_desktop_config.json`):
 }
 ```
 
-The MCP server reads credentials from a `.env` file in the project root (see `.env.example`). No need to pass env vars in the config.
+No API keys or database required. The MCP server calls the public AgentKarma REST API.
 
 ---
 
@@ -260,7 +262,7 @@ agent-karma/
 │   ├── indexer/       # ERC-8004 + x402 indexers, CU budget tracker
 │   ├── scoring/       # 7-signal trust score engine
 │   ├── api/           # Hono REST API (14 endpoints)
-│   ├── mcp/           # MCP server (6 tools)
+│   ├── mcp/           # MCP server (7 tools, API client)
 │   └── worker.ts      # Cloudflare Workers entry point
 ├── sdk/               # npm package: agentkarma
 ├── openapi.yaml       # OpenAPI 3.0 spec

@@ -2,7 +2,7 @@
  * AgentKarma MCP Server
  *
  * Exposes wallet trust data to AI agents via Model Context Protocol.
- * Runs locally via stdio transport — no hosting required.
+ * Calls the public AgentKarma REST API — no database or API keys required.
  *
  * Usage:
  *   npx tsx src/mcp/server.ts
@@ -22,167 +22,92 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import sql from '../db/client.js'
+
+const API_BASE = process.env.AGENTKARMA_API_URL || 'https://agent-karma.rushikeshmore271.workers.dev'
+
+async function api<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { 'Accept': 'application/json', ...options?.headers },
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`API ${res.status}: ${body || res.statusText}`)
+  }
+  return res.json() as Promise<T>
+}
+
+function jsonText(data: unknown) {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+}
 
 const server = new McpServer({
   name: 'agent-karma',
   version: '0.6.0',
-  description: 'Credit bureau for AI agent wallets. Look up trust data for any wallet address.',
+  description: 'Credit bureau for AI agent wallets. Score any wallet address for trustworthiness using on-chain data from ERC-8004 and x402 protocols.',
 })
 
-// --- Tool 1: lookup_wallet ---
-server.registerTool(
-  'lookup_wallet',
-  {
-    description:
-      'Look up a wallet address to see if it belongs to a known AI agent. Returns source (erc8004/x402/both), transaction count, ERC-8004 agent ID, and when it was first/last seen.',
-    inputSchema: {
-      address: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]{40}$/)
-        .describe('EVM wallet address (0x...)'),
-    },
-  },
-  async ({ address }) => {
-    const addr = address.toLowerCase()
-    const wallet = await sql`SELECT * FROM wallets WHERE address = ${addr}`
-
-    if (wallet.length === 0) {
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ found: false, address: addr, message: 'Wallet not found in AgentKarma index. This address has no known AI agent activity.' }, null, 2) }],
-      }
-    }
-
-    const w = wallet[0]
-    const txCount = await sql`SELECT COUNT(*) as count FROM transactions WHERE payer = ${addr} OR recipient = ${addr}`
-    const feedbackCount = await sql`
-      SELECT COUNT(*) as count FROM feedback f
-      LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
-      WHERE w.address = ${addr} OR f.target_address = ${addr}
-    `
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          found: true,
-          address: w.address,
-          source: w.source,
-          chain: w.chain,
-          erc8004_id: w.erc8004_id,
-          trust_score: w.trust_score,
-          score_breakdown: w.score_breakdown,
-          scored_at: w.scored_at,
-          tx_count: Number(w.tx_count ?? 0),
-          transaction_count: Number(txCount[0].count),
-          feedback_count: Number(feedbackCount[0].count),
-          first_seen_block: w.first_seen_block,
-          first_seen_at: w.first_seen_at,
-          last_seen_at: w.last_seen_at,
-        }, null, 2),
-      }],
-    }
-  }
-)
-
-// --- Tool 2: get_wallet_trust_signals ---
-server.registerTool(
-  'get_wallet_trust_signals',
-  {
-    description:
-      'Get trust indicators for a wallet address. Returns transaction history, counterparty diversity, feedback scores, and activity patterns. Use this to assess whether an AI agent wallet is trustworthy before transacting.',
-    inputSchema: {
-      address: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]{40}$/)
-        .describe('EVM wallet address (0x...)'),
-    },
-  },
-  async ({ address }) => {
-    const addr = address.toLowerCase()
-    const wallet = await sql`SELECT * FROM wallets WHERE address = ${addr}`
-
-    if (wallet.length === 0) {
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ found: false, address: addr, trust_signals: null, message: 'No data available for this address.' }, null, 2) }],
-      }
-    }
-
-    // Get transaction stats
-    const txStats = await sql`
-      SELECT
-        COUNT(*) as total_txns,
-        COUNT(DISTINCT CASE WHEN payer = ${addr} THEN recipient ELSE payer END) as unique_counterparties,
-        SUM(amount_usdc) as total_volume_usdc,
-        MIN(block_number) as first_tx_block,
-        MAX(block_number) as last_tx_block
-      FROM transactions
-      WHERE payer = ${addr} OR recipient = ${addr}
-    `
-
-    // Get feedback stats
-    const feedbackStats = await sql`
-      SELECT
-        COUNT(*) as total_feedback,
-        AVG(value::numeric) as avg_value
-      FROM feedback f
-      LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
-      WHERE w.address = ${addr} OR f.target_address = ${addr}
-    `
-
-    // Recent transactions (last 5)
-    const recentTxns = await sql`
-      SELECT tx_hash, block_number, payer, recipient, amount_usdc, is_x402
-      FROM transactions
-      WHERE payer = ${addr} OR recipient = ${addr}
-      ORDER BY block_number DESC
-      LIMIT 5
-    `
-
-    const stats = txStats[0]
-    const fb = feedbackStats[0]
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          found: true,
-          address: addr,
-          source: wallet[0].source,
-          erc8004_registered: wallet[0].erc8004_id !== null,
-          erc8004_id: wallet[0].erc8004_id,
-          trust_score: wallet[0].trust_score,
-          score_breakdown: wallet[0].score_breakdown,
-          trust_signals: {
-            total_transactions: Number(stats.total_txns),
-            unique_counterparties: Number(stats.unique_counterparties),
-            total_volume_usdc: Number(stats.total_volume_usdc ?? 0),
-            total_feedback: Number(fb.total_feedback),
-            avg_feedback_value: fb.avg_value ? Number(fb.avg_value) : null,
-            activity_span_blocks: stats.first_tx_block && stats.last_tx_block
-              ? Number(stats.last_tx_block) - Number(stats.first_tx_block)
-              : 0,
-          },
-          recent_transactions: recentTxns.map((t: any) => ({
-            tx_hash: t.tx_hash,
-            block: t.block_number,
-            role: t.payer === addr ? 'payer' : 'recipient',
-            counterparty: t.payer === addr ? t.recipient : t.payer,
-            amount_usdc: Number(t.amount_usdc),
-            is_x402: t.is_x402,
-          })),
-        }, null, 2),
-      }],
-    }
-  }
-)
-
-// --- Tool 3: get_trust_score ---
+// --- Tool 1: get_trust_score ---
+// Primary tool for trust decisions. Returns score, tier, percentile, and full breakdown.
 server.registerTool(
   'get_trust_score',
   {
     description:
-      'Get the trust score (0-100) for an AI agent wallet. Returns a weighted score based on: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), and age (5%). ERC-8004 registered agents get a +5 bonus. Use this to quickly assess if a wallet is trustworthy before transacting.',
+      'Get the trust score (0-100) for an AI agent wallet address. Returns a weighted score based on 7 signals: loyalty (30%), activity (18%), diversity (16%), feedback (15%), volume (10%), recency (6%), age (5%). Includes tier (HIGH/MEDIUM/LOW/MINIMAL), percentile rank, and signal-by-signal breakdown. Use this as your primary tool for trust decisions before transacting.',
+    inputSchema: {
+      address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/)
+        .describe('EVM wallet address (0x...)'),
+    },
+  },
+  async ({ address }) => {
+    try {
+      const score = await api<any>(`/score/${address.toLowerCase()}`)
+      return jsonText({ found: true, ...score })
+    } catch (err: any) {
+      if (err.message?.includes('404')) {
+        return jsonText({ found: false, address: address.toLowerCase(), trust_score: null, message: 'Wallet not found. No AI agent activity detected for this address.' })
+      }
+      throw err
+    }
+  }
+)
+
+// --- Tool 2: lookup_wallet ---
+// Identity and metadata tool. Use when you need wallet details beyond the trust score.
+server.registerTool(
+  'lookup_wallet',
+  {
+    description:
+      'Get full wallet identity and metadata: source (erc8004/x402), chain, ERC-8004 agent ID, trust score with tier, transaction and feedback counts, and activity timestamps. Use this when you need wallet details beyond the trust score — e.g., "is this an ERC-8004 registered agent?" or "how many transactions has this wallet made?"',
+    inputSchema: {
+      address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/)
+        .describe('EVM wallet address (0x...)'),
+    },
+  },
+  async ({ address }) => {
+    try {
+      const data = await api<any>(`/wallet/${address.toLowerCase()}`)
+      return jsonText({ found: true, ...data })
+    } catch (err: any) {
+      if (err.message?.includes('404')) {
+        return jsonText({ found: false, address: address.toLowerCase(), message: 'Wallet not found in AgentKarma index.' })
+      }
+      throw err
+    }
+  }
+)
+
+// --- Tool 3: get_wallet_trust_signals ---
+// Deep dive tool. Combines score + transactions for full trust context.
+server.registerTool(
+  'get_wallet_trust_signals',
+  {
+    description:
+      'Deep trust analysis for a wallet. Returns the trust score with breakdown PLUS recent transaction history showing counterparties, amounts, and roles (payer/recipient). Use this when you need to understand WHY a wallet has its score — e.g., before a high-value transaction where you want to see the wallet\'s actual on-chain behavior.',
     inputSchema: {
       address: z
         .string()
@@ -192,68 +117,49 @@ server.registerTool(
   },
   async ({ address }) => {
     const addr = address.toLowerCase()
-    const wallet = await sql`
-      SELECT address, trust_score, score_breakdown, scored_at, source, tx_count, erc8004_id
-      FROM wallets WHERE address = ${addr}
-    `
+    try {
+      const [score, txData] = await Promise.all([
+        api<any>(`/score/${addr}`).catch(() => null),
+        api<any>(`/wallet/${addr}/transactions?limit=5`).catch(() => ({ transactions: [] })),
+      ])
 
-    if (wallet.length === 0) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            found: false,
-            address: addr,
-            trust_score: null,
-            message: 'Wallet not found. No AI agent activity detected for this address.',
-          }, null, 2),
-        }],
+      if (!score) {
+        return jsonText({ found: false, address: addr, message: 'No data available for this address.' })
       }
-    }
 
-    const w = wallet[0]
-    const tierLabel = w.trust_score == null ? null :
-      w.trust_score >= 80 ? 'HIGH' :
-      w.trust_score >= 50 ? 'MEDIUM' :
-      w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
-
-    let percentile: number | null = null
-    if (w.trust_score != null) {
-      const pctResult = await sql`
-        SELECT
-          COUNT(*) FILTER (WHERE trust_score <= ${w.trust_score})::float
-          / NULLIF(COUNT(*), 0) * 100 AS percentile
-        FROM wallets WHERE trust_score IS NOT NULL
-      `
-      percentile = pctResult[0].percentile != null ? Math.round(pctResult[0].percentile) : null
-    }
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          found: true,
-          address: w.address,
-          trust_score: w.trust_score,
-          tier: tierLabel,
-          percentile,
-          breakdown: w.score_breakdown,
-          scored_at: w.scored_at,
-          source: w.source,
-          tx_count: Number(w.tx_count ?? 0),
-          erc8004_registered: w.erc8004_id !== null,
-        }, null, 2),
-      }],
+      return jsonText({
+        found: true,
+        address: addr,
+        trust_score: score.trust_score,
+        tier: score.tier,
+        percentile: score.percentile,
+        score_breakdown: score.score_breakdown,
+        source: score.source,
+        tx_count: score.tx_count,
+        recent_transactions: txData.transactions.slice(0, 5).map((t: any) => ({
+          tx_hash: t.tx_hash,
+          block: t.block_number,
+          role: t.payer === addr ? 'payer' : 'recipient',
+          counterparty: t.payer === addr ? t.recipient : t.payer,
+          amount_usdc: t.amount_usdc,
+          is_x402: t.is_x402,
+        })),
+      })
+    } catch (err: any) {
+      if (err.message?.includes('404')) {
+        return jsonText({ found: false, address: addr, message: 'No data available for this address.' })
+      }
+      throw err
     }
   }
 )
 
-// --- Tool 3b: batch_trust_scores ---
+// --- Tool 4: batch_trust_scores ---
 server.registerTool(
   'batch_trust_scores',
   {
     description:
-      'Look up trust scores for multiple wallet addresses at once (max 100). Returns scores for found wallets and a list of addresses not found.',
+      'Look up trust scores for multiple wallet addresses at once (max 100). Returns scores with tier and breakdown for found wallets, and a list of addresses not found. Use this when comparing multiple wallets or checking a batch of counterparties.',
     inputSchema: {
       addresses: z
         .array(z.string().regex(/^0x[a-fA-F0-9]{40}$/))
@@ -262,55 +168,26 @@ server.registerTool(
     },
   },
   async ({ addresses }) => {
-    const normalized = addresses.map((a: string) => a.toLowerCase())
-    const wallets = await sql`
-      SELECT address, trust_score, score_breakdown, scored_at, source, tx_count, erc8004_id
-      FROM wallets WHERE address = ANY(${normalized})
-    `
-
-    const found = new Map(wallets.map((w: any) => [w.address, w]))
-    const scores = []
-    const notFound = []
-
-    for (const addr of normalized) {
-      const w = found.get(addr)
-      if (w) {
-        const tier = w.trust_score == null ? null :
-          w.trust_score >= 80 ? 'HIGH' :
-          w.trust_score >= 50 ? 'MEDIUM' :
-          w.trust_score >= 20 ? 'LOW' : 'MINIMAL'
-        scores.push({
-          address: w.address,
-          trust_score: w.trust_score,
-          tier,
-          breakdown: w.score_breakdown,
-          scored_at: w.scored_at,
-        })
-      } else {
-        notFound.push(addr)
-      }
-    }
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({ scores, not_found: notFound }, null, 2),
-      }],
-    }
+    const data = await api<any>('/wallets/batch-scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addresses: addresses.map(a => a.toLowerCase()) }),
+    })
+    return jsonText(data)
   }
 )
 
-// --- Tool 4: list_wallets ---
+// --- Tool 5: list_wallets ---
 server.registerTool(
   'list_wallets',
   {
     description:
-      'Browse indexed AI agent wallets. Filter by data source (erc8004 = registered agents, x402 = payment activity, both = seen in both). Returns a paginated list.',
+      'Browse indexed AI agent wallets. Filter by data source (erc8004 = registered agents, x402 = payment activity). Returns a paginated list sorted by recent activity.',
     inputSchema: {
       source: z
-        .enum(['erc8004', 'x402', 'both', 'all'])
-        .default('all')
-        .describe('Filter by data source'),
+        .enum(['erc8004', 'x402', 'both'])
+        .optional()
+        .describe('Filter by data source (omit for all)'),
       limit: z
         .number()
         .int()
@@ -322,76 +199,69 @@ server.registerTool(
         .number()
         .int()
         .min(0)
+        .max(10000)
         .default(0)
-        .describe('Pagination offset'),
+        .describe('Pagination offset (max 10000)'),
     },
   },
   async ({ source, limit, offset }) => {
-    let wallets
-    if (source === 'all') {
-      wallets = await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, first_seen_at, last_seen_at
-        FROM wallets ORDER BY last_seen_at DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
-      `
-    } else {
-      wallets = await sql`
-        SELECT address, source, chain, erc8004_id, tx_count, first_seen_at, last_seen_at
-        FROM wallets WHERE source = ${source} ORDER BY last_seen_at DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}
-      `
-    }
-
-    const total = await sql`SELECT COUNT(*) as count FROM wallets ${source !== 'all' ? sql`WHERE source = ${source}` : sql``}`
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          total: Number(total[0].count),
-          offset,
-          limit,
-          wallets: wallets.map((w: any) => ({
-            address: w.address,
-            source: w.source,
-            chain: w.chain,
-            erc8004_id: w.erc8004_id,
-            tx_count: Number(w.tx_count ?? 0),
-            last_seen: w.last_seen_at,
-          })),
-        }, null, 2),
-      }],
-    }
+    const params = new URLSearchParams()
+    params.set('limit', String(limit))
+    params.set('offset', String(offset))
+    if (source) params.set('source', source)
+    const data = await api<any>(`/wallets?${params}`)
+    return jsonText(data)
   }
 )
 
-// --- Tool 5: agentkarma_stats ---
+// --- Tool 6: submit_feedback ---
+server.registerTool(
+  'submit_feedback',
+  {
+    description:
+      'Submit feedback for a wallet after a transaction. Rate the experience 1-5 stars. This contributes to the wallet\'s trust score over time. Use this after completing a transaction to help build the trust network.',
+    inputSchema: {
+      address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/)
+        .describe('Wallet address you transacted with'),
+      tx_hash: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{64}$/)
+        .describe('Transaction hash'),
+      rating: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .describe('Rating 1-5 (1=terrible, 5=excellent)'),
+      comment: z
+        .string()
+        .max(1000)
+        .optional()
+        .describe('Optional comment about the transaction'),
+    },
+  },
+  async ({ address, tx_hash, rating, comment }) => {
+    const data = await api<any>('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: address.toLowerCase(), tx_hash: tx_hash.toLowerCase(), rating, comment }),
+    })
+    return jsonText(data)
+  }
+)
+
+// --- Tool 7: agentkarma_stats ---
 server.registerTool(
   'agentkarma_stats',
   {
-    description: 'Get AgentKarma database statistics: total wallets, transactions, feedback count, and database size.',
+    description: 'Get AgentKarma platform statistics: total wallets indexed, transactions scored, feedback count, score distribution by tier, and database usage.',
     inputSchema: {},
   },
   async () => {
-    const walletCount = await sql`SELECT COUNT(*) as count FROM wallets`
-    const txCount = await sql`SELECT COUNT(*) as count FROM transactions`
-    const feedbackCount = await sql`SELECT COUNT(*) as count FROM feedback`
-    const dbSize = await sql`SELECT pg_database_size(current_database()) as size`
-    const sources = await sql`SELECT source, COUNT(*) as count FROM wallets GROUP BY source`
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          total_wallets: Number(walletCount[0].count),
-          total_transactions: Number(txCount[0].count),
-          total_feedback: Number(feedbackCount[0].count),
-          db_size_mb: (Number(dbSize[0].size) / 1024 / 1024).toFixed(1),
-          db_limit_mb: 500,
-          wallets_by_source: Object.fromEntries(
-            sources.map((s: any) => [s.source, Number(s.count)])
-          ),
-        }, null, 2),
-      }],
-    }
+    const data = await api<any>('/stats')
+    return jsonText(data)
   }
 )
 
@@ -399,8 +269,8 @@ server.registerTool(
 async function main() {
   const transport = new StdioServerTransport()
   await server.connect(transport)
-  // Use stderr — stdout is reserved for JSON-RPC in stdio mode
   console.error('AgentKarma MCP server running on stdio')
+  console.error(`API: ${API_BASE}`)
 }
 
 main().catch((err) => {
