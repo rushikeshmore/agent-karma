@@ -39,6 +39,7 @@ export interface Wallet {
   first_seen_at: string
   last_seen_at: string
   trust_score: number | null
+  tier: ScoreTier | null
   score_breakdown: ScoreBreakdown | null
   scored_at: string | null
   role: WalletRole | null
@@ -61,6 +62,7 @@ export interface LeaderboardEntry {
   rank: number
   address: string
   trust_score: number
+  tier: ScoreTier
   source: string
   tx_count: number
   score_breakdown: ScoreBreakdown
