@@ -318,7 +318,12 @@ app.get('/wallet/:address/score-history', async (c) => {
     ORDER BY computed_at DESC LIMIT ${limit}
   `
 
-  return c.json({ history })
+  return c.json({
+    history: history.map((h: any) => ({
+      ...h,
+      score_breakdown: parseJsonb(h.score_breakdown),
+    })),
+  })
 })
 
 // Trust score for a wallet
