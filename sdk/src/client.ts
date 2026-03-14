@@ -132,8 +132,13 @@ export class AgentKarma {
    * ```
    */
   async isHighTrust(address: string): Promise<boolean> {
-    const { tier } = await this.getScore(address)
-    return tier === 'HIGH'
+    try {
+      const { tier } = await this.getScore(address)
+      return tier === 'HIGH'
+    } catch (err) {
+      if (err instanceof AgentKarmaError && err.status === 404) return false
+      throw err
+    }
   }
 
   /**
@@ -147,8 +152,13 @@ export class AgentKarma {
    * ```
    */
   async meetsThreshold(address: string, minScore: number): Promise<boolean> {
-    const { trust_score } = await this.getScore(address)
-    return (trust_score ?? 0) >= minScore
+    try {
+      const { trust_score } = await this.getScore(address)
+      return (trust_score ?? 0) >= minScore
+    } catch (err) {
+      if (err instanceof AgentKarmaError && err.status === 404) return false
+      throw err
+    }
   }
 
   /**
