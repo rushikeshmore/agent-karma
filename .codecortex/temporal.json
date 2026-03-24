@@ -1,0 +1,967 @@
+{
+  "generated": "2026-03-24T11:03:38.452Z",
+  "periodDays": 90,
+  "totalCommits": 32,
+  "hotspots": [
+    {
+      "file": "src/worker.ts",
+      "changes": 18,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T01:56:58+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/api/routes.ts",
+      "changes": 16,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T01:56:58+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "CLAUDE.md",
+      "changes": 14,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "README.md",
+      "changes": 10,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/mcp/server.ts",
+      "changes": 9,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/scoring/compute.ts",
+      "changes": 9,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "sdk/src/client.ts",
+      "changes": 8,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T01:00:47+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/db/migrate.ts",
+      "changes": 8,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:33:56+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "sdk/src/types.ts",
+      "changes": 7,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "openapi.yaml",
+      "changes": 6,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/indexer/erc8004.ts",
+      "changes": 6,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:33:56+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/indexer/x402.ts",
+      "changes": 6,
+      "stability": "stabilizing",
+      "lastChanged": "2026-03-15T00:33:56+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "src/scoring/__tests__/compute.test.ts",
+      "changes": 4,
+      "stability": "moderate",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "wrangler.toml",
+      "changes": 4,
+      "stability": "moderate",
+      "lastChanged": "2026-02-25T17:55:18+05:30",
+      "daysSinceChange": 26
+    },
+    {
+      "file": ".gitignore",
+      "changes": 4,
+      "stability": "moderate",
+      "lastChanged": "2026-02-24T17:14:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "DEVLOG.md",
+      "changes": 4,
+      "stability": "moderate",
+      "lastChanged": "2026-02-24T17:14:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "sdk/README.md",
+      "changes": 3,
+      "stability": "moderate",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "smithery.yaml",
+      "changes": 3,
+      "stability": "moderate",
+      "lastChanged": "2026-03-15T00:55:30+05:30",
+      "daysSinceChange": 9
+    },
+    {
+      "file": "sdk/src/index.ts",
+      "changes": 3,
+      "stability": "moderate",
+      "lastChanged": "2026-03-01T19:42:34+05:30",
+      "daysSinceChange": 22
+    },
+    {
+      "file": "src/config/constants.ts",
+      "changes": 3,
+      "stability": "moderate",
+      "lastChanged": "2026-02-25T16:18:01+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "src/config/chains.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-25T16:18:01+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "vitest.config.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-25T15:52:22+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/.gitignore",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/favicon.ico",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/globals.css",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/layout.tsx",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/leaderboard/page.tsx",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/page.tsx",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/app/wallet/[address]/page.tsx",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/eslint.config.mjs",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/lib/api.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/lib/utils.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/next.config.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/postcss.config.mjs",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/public/file.svg",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/public/globe.svg",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/public/next.svg",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/public/vercel.svg",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/public/window.svg",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/dashboard/tsconfig.json",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/src/client.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/src/index.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/src/types.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "src/config/env.ts",
+      "changes": 2,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "openai-functions.json",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-03-01T15:51:39+05:30",
+      "daysSinceChange": 23
+    },
+    {
+      "file": "sdk/src/__tests__/client.test.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T20:16:15+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/README.md",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/src/__tests__/client.test.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/src/client.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/src/index.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/src/types.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "{packages/sdk => sdk}/tsconfig.json",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:17:00+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/README.md",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/src/__tests__/client.test.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-24T17:08:45+05:30",
+      "daysSinceChange": 27
+    },
+    {
+      "file": "packages/sdk/tsconfig.json",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T17:00:29+05:30",
+      "daysSinceChange": 28
+    },
+    {
+      "file": "scripts/test-mcp.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:38:47+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": ".env.example",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "scripts/db-status.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "scripts/debug-x402.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "scripts/test-rpc.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "src/db/client.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "src/index.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "src/indexer/cu-tracker.ts",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "tsconfig.json",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T11:32:40+05:30",
+      "daysSinceChange": 29
+    },
+    {
+      "file": "LICENSE",
+      "changes": 1,
+      "stability": "stable",
+      "lastChanged": "2026-02-23T01:30:20+05:30",
+      "daysSinceChange": 29
+    }
+  ],
+  "coupling": [
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 15,
+      "strength": 0.83,
+      "hasImport": false,
+      "warning": "HIDDEN DEPENDENCY — 83% co-change rate"
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 8,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 8,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/mcp/server.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 8,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/scoring/compute.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 8,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/db/migrate.ts",
+      "cochanges": 8,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/api/routes.ts",
+      "cochanges": 7,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 7,
+      "strength": 0.39,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/api/routes.ts",
+      "cochanges": 7,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 7,
+      "strength": 0.39,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/db/migrate.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 7,
+      "strength": 0.39,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "sdk/src/types.ts",
+      "cochanges": 6,
+      "strength": 0.75,
+      "hasImport": true
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 6,
+      "strength": 0.67,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/mcp/server.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 6,
+      "strength": 0.67,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/indexer/erc8004.ts",
+      "cochanges": 6,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/indexer/x402.ts",
+      "cochanges": 6,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/indexer/erc8004.ts",
+      "fileB": "src/indexer/x402.ts",
+      "cochanges": 6,
+      "strength": 1,
+      "hasImport": false,
+      "warning": "HIDDEN DEPENDENCY — 100% co-change rate"
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 5,
+      "strength": 0.56,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 5,
+      "strength": 0.56,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 5,
+      "strength": 0.56,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/db/migrate.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 5,
+      "strength": 0.56,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/indexer/erc8004.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 5,
+      "strength": 0.28,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/indexer/x402.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 5,
+      "strength": 0.28,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/db/migrate.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 5,
+      "strength": 0.56,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/scoring/__tests__/compute.test.ts",
+      "cochanges": 4,
+      "strength": 0.25,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/scoring/__tests__/compute.test.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 4,
+      "strength": 0.44,
+      "hasImport": true
+    },
+    {
+      "fileA": "src/scoring/__tests__/compute.test.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 4,
+      "strength": 0.22,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/db/migrate.ts",
+      "fileB": "src/indexer/erc8004.ts",
+      "cochanges": 4,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/db/migrate.ts",
+      "fileB": "src/indexer/x402.ts",
+      "cochanges": 4,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/indexer/erc8004.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 4,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/indexer/x402.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 4,
+      "strength": 0.44,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/db/migrate.ts",
+      "cochanges": 4,
+      "strength": 0.5,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/scoring/__tests__/compute.test.ts",
+      "cochanges": 3,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/scoring/__tests__/compute.test.ts",
+      "cochanges": 3,
+      "strength": 0.43,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/mcp/server.ts",
+      "fileB": "src/scoring/__tests__/compute.test.ts",
+      "cochanges": 3,
+      "strength": 0.33,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "sdk/src/index.ts",
+      "cochanges": 3,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/client.ts",
+      "fileB": "src/db/migrate.ts",
+      "cochanges": 3,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "sdk/src/types.ts",
+      "cochanges": 3,
+      "strength": 0.43,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "src/api/routes.ts",
+      "cochanges": 3,
+      "strength": 0.19,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "src/db/migrate.ts",
+      "cochanges": 3,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "src/mcp/server.ts",
+      "cochanges": 3,
+      "strength": 0.33,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "src/scoring/compute.ts",
+      "cochanges": 3,
+      "strength": 0.33,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/index.ts",
+      "fileB": "src/worker.ts",
+      "cochanges": 3,
+      "strength": 0.17,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/worker.ts",
+      "fileB": "wrangler.toml",
+      "cochanges": 3,
+      "strength": 0.17,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/indexer/erc8004.ts",
+      "cochanges": 3,
+      "strength": 0.43,
+      "hasImport": false
+    },
+    {
+      "fileA": "sdk/src/types.ts",
+      "fileB": "src/indexer/x402.ts",
+      "cochanges": 3,
+      "strength": 0.43,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/api/routes.ts",
+      "fileB": "src/config/constants.ts",
+      "cochanges": 3,
+      "strength": 0.19,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/config/constants.ts",
+      "fileB": "src/db/migrate.ts",
+      "cochanges": 3,
+      "strength": 0.38,
+      "hasImport": false
+    },
+    {
+      "fileA": "src/config/constants.ts",
+      "fileB": "src/indexer/erc8004.ts",
+      "cochanges": 3,
+      "strength": 0.5,
+      "hasImport": true
+    },
+    {
+      "fileA": "src/config/constants.ts",
+      "fileB": "src/indexer/x402.ts",
+      "cochanges": 3,
+      "strength": 0.5,
+      "hasImport": true
+    }
+  ],
+  "bugHistory": [
+    {
+      "file": "src/worker.ts",
+      "fixCommits": 9,
+      "lessons": [
+        "parse score_breakdown in score-history endpoint",
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "DX round 2 — type accuracy, clean responses, validation errors",
+        "DX critical — parse score_breakdown, add tier, strip internal fields",
+        "production audit — smithery env vars, dead code, docs alignment",
+        "/wallets endpoint 500 — rewrite NULL-coalescing SQL for Neon",
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation",
+        "14 bugs and robustness improvements from codebase audit",
+        "add role field to worker /score, /wallets, /leaderboard queries"
+      ]
+    },
+    {
+      "file": "src/api/routes.ts",
+      "fixCommits": 7,
+      "lessons": [
+        "parse score_breakdown in score-history endpoint",
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "DX round 2 — type accuracy, clean responses, validation errors",
+        "DX critical — parse score_breakdown, add tier, strip internal fields",
+        "production audit — smithery env vars, dead code, docs alignment",
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation",
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "sdk/src/client.ts",
+      "fixCommits": 5,
+      "lessons": [
+        "isHighTrust and meetsThreshold return false on 404 (unknown wallets)",
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "DX round 2 — type accuracy, clean responses, validation errors",
+        "production audit — smithery env vars, dead code, docs alignment",
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "src/scoring/compute.ts",
+      "fixCommits": 4,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation",
+        "14 bugs and robustness improvements from codebase audit",
+        "batch score_history inserts (was 1 row/query, now 500/query)"
+      ]
+    },
+    {
+      "file": "sdk/src/types.ts",
+      "fixCommits": 3,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "DX round 2 — type accuracy, clean responses, validation errors",
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "CLAUDE.md",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "production audit — smithery env vars, dead code, docs alignment"
+      ]
+    },
+    {
+      "file": "README.md",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "production audit — smithery env vars, dead code, docs alignment"
+      ]
+    },
+    {
+      "file": "openapi.yaml",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation"
+      ]
+    },
+    {
+      "file": "smithery.yaml",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "production audit — smithery env vars, dead code, docs alignment"
+      ]
+    },
+    {
+      "file": "src/mcp/server.ts",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "src/scoring/__tests__/compute.test.ts",
+      "fixCommits": 2,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues",
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "wrangler.toml",
+      "fixCommits": 2,
+      "lessons": [
+        "use native ratelimits syntax in wrangler.toml",
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation"
+      ]
+    },
+    {
+      "file": "sdk/README.md",
+      "fixCommits": 1,
+      "lessons": [
+        "comprehensive DX overhaul — all 16 remaining issues"
+      ]
+    },
+    {
+      "file": "src/db/migrate.ts",
+      "fixCommits": 1,
+      "lessons": [
+        "v0.5.1 hardening — rate limiting, CORS, webhooks, validation"
+      ]
+    },
+    {
+      "file": "src/indexer/erc8004.ts",
+      "fixCommits": 1,
+      "lessons": [
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "src/indexer/x402.ts",
+      "fixCommits": 1,
+      "lessons": [
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    },
+    {
+      "file": "vitest.config.ts",
+      "fixCommits": 1,
+      "lessons": [
+        "14 bugs and robustness improvements from codebase audit"
+      ]
+    }
+  ]
+}

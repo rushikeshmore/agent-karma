@@ -1,0 +1,25 @@
+version: 1.0.0
+project: agent-karma
+root: /Users/rushikeshmore/Desktop/personal-desk/03-projects/agent-karma
+generated: 2026-03-24T11:03:38.455Z
+lastUpdated: 2026-03-24T11:03:38.455Z
+languages:
+  - typescript
+totalFiles: 24
+totalSymbols: 606
+totalModules: 6
+projectSize: micro
+tiers:
+  hot:
+    - cortex.yaml
+    - constitution.md
+    - overview.md
+    - graph.json
+    - symbols.json
+    - temporal.json
+  warm:
+    - modules/
+  cold:
+    - decisions/
+    - sessions/
+    - patterns.md

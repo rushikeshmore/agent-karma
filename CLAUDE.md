@@ -84,3 +84,52 @@ Every API route exists in BOTH:
 
 ## Packages
 - `sdk/` — npm package `agentkarma` (zero deps, TypeScript)
+
+<!-- codecortex:start -->
+## CodeCortex — Project Knowledge (auto-updated)
+
+### Architecture
+**agent-karma** — typescript — 24 files, 606 symbols
+- **Modules (6):** indexer (825loc), scoring (817loc), api (480loc), mcp (280loc), db (176loc), config (87loc)
+- **Entry points:** `src/index.ts`
+- **Key deps:** viem, vitest, hono, crypto, postgres, +4 more
+
+### Risk Map
+**High-risk files:**
+- `src/worker.ts` — 18 changes, 9 bug-fixes, stabilizing, coupled to: routes.ts ⚠, server.ts ⚠
+- `src/api/routes.ts` — 16 changes, 7 bug-fixes, stabilizing, coupled to: worker.ts ⚠, server.ts ⚠
+- `CLAUDE.md` — 14 changes, 2 bug-fixes, stabilizing
+- `README.md` — 10 changes, 2 bug-fixes, stabilizing
+- `src/mcp/server.ts` — 9 changes, 2 bug-fixes, stabilizing, coupled to: types.ts ⚠, compute.ts ⚠
+
+**Hidden couplings (co-change, no import):**
+- `src/api/routes.ts` ↔ `src/worker.ts` (83% co-change)
+- `src/api/routes.ts` ↔ `src/mcp/server.ts` (50% co-change)
+- `src/api/routes.ts` ↔ `src/scoring/compute.ts` (50% co-change)
+
+**Bug-prone files:**
+- `sdk/src/client.ts` — 5 bug-fix commits
+- `src/scoring/compute.ts` — 4 bug-fix commits
+- `sdk/src/types.ts` — 3 bug-fix commits
+
+### Before Editing
+Check `.codecortex/hotspots.md` for risk-ranked files before editing.
+If CodeCortex MCP tools are available, call `get_edit_briefing` for coupling + risk details.
+If not, read `.codecortex/modules/<module>.md` for the relevant module's dependencies and bug history.
+
+### Project Knowledge
+Read these files directly (always available, no tool call needed):
+- `.codecortex/hotspots.md` — risk-ranked files with coupling + bug data
+- `.codecortex/modules/*.md` — module docs, dependencies, temporal signals
+- `.codecortex/constitution.md` — full architecture overview
+- `.codecortex/patterns.md` — coding conventions
+- `.codecortex/decisions/*.md` — architectural decisions
+
+### MCP Tools (if available)
+If a CodeCortex MCP server is connected, these tools provide live analysis:
+- `get_edit_briefing` — risk + coupling + bugs for files you plan to edit.
+- `get_change_coupling` — files that co-change (hidden dependencies).
+- `get_project_overview` — architecture + dependency graph summary.
+- `get_dependency_graph` — scoped import/call graph for file or module.
+- `lookup_symbol` — precise symbol search (name, kind, file filters).
+<!-- codecortex:end -->
