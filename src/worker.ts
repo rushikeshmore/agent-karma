@@ -459,7 +459,8 @@ app.get('/wallet/:address/transactions', async (c) => {
   const offset = safeInt(c.req.query('offset'), 0)
 
   const txs = await sql`
-    SELECT * FROM transactions
+    SELECT tx_hash, block_number::text, chain, authorizer, payer, recipient, amount_usdc, is_x402, block_timestamp
+    FROM transactions
     WHERE payer = ${address} OR recipient = ${address}
     ORDER BY block_number DESC
     LIMIT ${limit} OFFSET ${offset}
@@ -477,7 +478,9 @@ app.get('/wallet/:address/feedback', async (c) => {
   const offset = safeInt(c.req.query('offset'), 0)
 
   const fb = await sql`
-    SELECT f.* FROM feedback f
+    SELECT f.agent_id, f.client_address, f.feedback_index, f.value, f.value_decimals,
+           f.tag1, f.tag2, f.endpoint, f.feedback_uri, f.block_number::text, f.tx_hash, f.block_timestamp, f.source
+    FROM feedback f
     LEFT JOIN wallets w ON f.agent_id = w.erc8004_id AND f.agent_id != 0
     WHERE w.address = ${address} OR f.target_address = ${address}
     ORDER BY f.block_number DESC
