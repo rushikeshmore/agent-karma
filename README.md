@@ -1,9 +1,14 @@
 # AgentKarma
 
 [![npm version](https://img.shields.io/npm/v/agentkarma)](https://www.npmjs.com/package/agentkarma)
+[![npm downloads](https://img.shields.io/npm/dm/agentkarma)](https://www.npmjs.com/package/agentkarma)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 **Credit bureau for AI agent wallets.** [agentkarma.dev](https://agentkarma.dev)
+
+> 14,600+ wallets indexed | 234,000+ transactions | 4 chains | 7 MCP tools
+>
+> If AgentKarma is useful to you, consider giving it a star — it helps others discover it.
 
 AI agents are transacting on their own now. They pay each other, buy services, settle invoices, all through crypto wallets. But there's no way to tell if the wallet on the other side is legit.
 
@@ -32,13 +37,13 @@ Traditional reputation systems won't help here. Agents don't have usernames, pro
 
 AgentKarma watches two on-chain protocols built specifically for AI agent activity:
 
-- **ERC-8004** (Ethereum, Base, Arbitrum) - The agent identity standard. NFT-based registration with on-chain reputation feedback.
+- **ERC-8004** (Ethereum, Base, BNB Chain, Arbitrum) - The agent identity standard. NFT-based registration with on-chain reputation feedback. 130K+ agents registered across chains.
 - **x402** (Base, Arbitrum) - Coinbase's HTTP payment protocol for AI agents. USDC micropayments between autonomous services.
 
 Every wallet, transaction, and feedback event gets indexed into Postgres. A 7-signal scoring algorithm turns this into a trust score (0-100) for each wallet.
 
 ```
-Ethereum mainnet                    Base L2
+Ethereum · Base · BNB Chain · Arbitrum
 ┌─────────────────────┐   ┌──────────────────────┐
 │ ERC-8004 Registry   │   │ USDC Contract         │
 │ - Agent mints (NFT) │   │ - AuthorizationUsed   │
@@ -274,11 +279,11 @@ agent-karma/
 | Component | Technology |
 | --- | --- |
 | Language | TypeScript (ESM) |
-| Blockchain | [viem](https://viem.sh/) for Ethereum, Base, and Arbitrum |
+| Blockchain | [viem](https://viem.sh/) for Ethereum, Base, BNB Chain, and Arbitrum |
 | Database | [postgres.js](https://github.com/porsager/postgres) + [Neon](https://neon.tech/) |
 | API | [Hono](https://hono.dev/), runs on Cloudflare Workers |
 | MCP | [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
-| RPC | [Alchemy](https://www.alchemy.com/) (Ethereum, Base, Arbitrum) |
+| RPC | [Alchemy](https://www.alchemy.com/) (Ethereum, Base, Arbitrum) + BSC public RPC (BNB Chain) |
 | Hosting | Cloudflare Workers |
 
 ## SDK
@@ -286,6 +291,10 @@ agent-karma/
 The TypeScript SDK is published as [`agentkarma`](https://www.npmjs.com/package/agentkarma) on npm. Zero dependencies, full types, works everywhere.
 
 See [`sdk/README.md`](sdk/README.md) for the complete API reference.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, project structure, and PR guidelines.
 
 ## License
 
