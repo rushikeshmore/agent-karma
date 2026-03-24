@@ -1,5 +1,5 @@
 import { createPublicClient, http } from 'viem'
-import { mainnet, base, arbitrum } from 'viem/chains'
+import { mainnet, base, arbitrum, bsc } from 'viem/chains'
 import { env } from './env.js'
 
 export const ethClient = createPublicClient({
@@ -15,4 +15,10 @@ export const baseClient = createPublicClient({
 export const arbClient = createPublicClient({
   chain: arbitrum,
   transport: http(`https://arb-mainnet.g.alchemy.com/v2/${env.alchemyKey}`),
+})
+
+// BNB Chain — public RPC (no Alchemy CU cost, ~3s blocks)
+export const bscClient = createPublicClient({
+  chain: bsc,
+  transport: http('https://bsc-dataseed.binance.org'),
 })

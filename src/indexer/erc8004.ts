@@ -1,19 +1,20 @@
 /**
  * ERC-8004 Indexer — indexes IdentityRegistry mints + ReputationRegistry feedback.
  *
- * Multi-chain: scans both Ethereum and Base (same contract addresses).
+ * Multi-chain: scans Ethereum, Base, Arbitrum, and BNB Chain (same contract addresses).
  * CLI script: run → scan → write to DB → exit.
  * Resumable via indexer_state table.
  *
  * Usage:
- *   npm run indexer:erc8004                          (both chains)
+ *   npm run indexer:erc8004                          (all chains)
  *   npm run indexer:erc8004 -- --chain ethereum      (Ethereum only)
  *   npm run indexer:erc8004 -- --chain base          (Base only)
+ *   npm run indexer:erc8004 -- --chain bnb           (BNB Chain only)
  *   npm run indexer:erc8004 -- --limit 1000          (max blocks to scan)
  */
 
 import { parseAbiItem, type PublicClient } from 'viem'
-import { ethClient, baseClient, arbClient } from '../config/chains.js'
+import { ethClient, baseClient, arbClient, bscClient } from '../config/chains.js'
 import {
   IDENTITY_REGISTRY,
   REPUTATION_REGISTRY,
@@ -23,10 +24,13 @@ import {
   BASE_REPUTATION_DEPLOY_BLOCK,
   ARB_IDENTITY_DEPLOY_BLOCK,
   ARB_REPUTATION_DEPLOY_BLOCK,
+  BNB_IDENTITY_DEPLOY_BLOCK,
+  BNB_REPUTATION_DEPLOY_BLOCK,
   BATCH_SIZE,
   BATCH_DELAY_MS,
   BATCH_DELAY_BASE_MS,
   BATCH_DELAY_ARB_MS,
+  BATCH_DELAY_BNB_MS,
 } from '../config/constants.js'
 import { trackCU, getCUUsage, shouldStop } from './cu-tracker.js'
 import sql from '../db/client.js'
@@ -306,13 +310,22 @@ const ARB_CONFIG: ChainConfig = {
   label: 'arb',
 }
 
+const BNB_CONFIG: ChainConfig = {
+  client: bscClient as PublicClient,
+  chain: 'bnb',
+  stateId: '', // set per-indexer below
+  batchDelay: BATCH_DELAY_BNB_MS,
+  label: 'bnb',
+}
+
 async function indexChain(cfg: ChainConfig, identityDeployBlock: bigint, reputationDeployBlock: bigint) {
   trackCU('eth_blockNumber')
   const currentBlock = await cfg.client.getBlockNumber()
   console.log(`Current ${cfg.label} block: ${currentBlock}`)
 
-  const identityStateId = cfg.chain === 'ethereum' ? 'erc8004_identity' : 'erc8004_identity_base'
-  const reputationStateId = cfg.chain === 'ethereum' ? 'erc8004_reputation' : 'erc8004_reputation_base'
+  const suffix = cfg.chain === 'ethereum' ? '' : `_${cfg.label}`
+  const identityStateId = `erc8004_identity${suffix}`
+  const reputationStateId = `erc8004_reputation${suffix}`
 
   const identityState = await sql`SELECT last_block FROM indexer_state WHERE id = ${identityStateId}`
   const reputationState = await sql`SELECT last_block FROM indexer_state WHERE id = ${reputationStateId}`
@@ -375,6 +388,14 @@ async function main() {
   if (!chainArg || chainArg === 'arbitrum') {
     console.log('\n--- Arbitrum ---')
     const result = await indexChain(ARB_CONFIG, ARB_IDENTITY_DEPLOY_BLOCK, ARB_REPUTATION_DEPLOY_BLOCK)
+    totalMints += result.mints
+    totalFeedback += result.feedback
+  }
+
+  // Index BNB Chain
+  if (!chainArg || chainArg === 'bnb') {
+    console.log('\n--- BNB Chain ---')
+    const result = await indexChain(BNB_CONFIG, BNB_IDENTITY_DEPLOY_BLOCK, BNB_REPUTATION_DEPLOY_BLOCK)
     totalMints += result.mints
     totalFeedback += result.feedback
   }

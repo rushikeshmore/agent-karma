@@ -15,6 +15,12 @@ export const BASE_REPUTATION_DEPLOY_BLOCK = 26_000_000n
 export const ARB_IDENTITY_DEPLOY_BLOCK = 300_000_000n
 export const ARB_REPUTATION_DEPLOY_BLOCK = 300_000_000n
 
+// ERC-8004 on BNB Chain (same contract addresses, different chain)
+// BNB ~3s blocks (~28,800/day). ERC-8004 enabled Mar 4, 2026.
+// Conservative start: block ~47,000,000 (early March 2026).
+export const BNB_IDENTITY_DEPLOY_BLOCK = 47_000_000n
+export const BNB_REPUTATION_DEPLOY_BLOCK = 47_000_000n
+
 // USDC on Base (x402 payments settle here)
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
 
@@ -34,6 +40,7 @@ export const BATCH_SIZE = 10n          // blocks per eth_getLogs call (Alchemy f
 export const BATCH_DELAY_MS = 100      // ms between batches (Ethereum)
 export const BATCH_DELAY_BASE_MS = 100 // ms between batches (Base)
 export const BATCH_DELAY_ARB_MS = 100  // ms between batches (Arbitrum)
+export const BATCH_DELAY_BNB_MS = 200  // ms between batches (BNB Chain — public RPC, be polite)
 export const RECEIPT_DELAY_MS = 50     // ms between individual receipt fetches
 
 // Alchemy CU costs per method
