@@ -17,9 +17,10 @@ export const ARB_REPUTATION_DEPLOY_BLOCK = 300_000_000n
 
 // ERC-8004 on BNB Chain (same contract addresses, different chain)
 // BNB ~3s blocks (~28,800/day). ERC-8004 enabled Mar 4, 2026.
-// Conservative start: block ~47,000,000 (early March 2026).
-export const BNB_IDENTITY_DEPLOY_BLOCK = 47_000_000n
-export const BNB_REPUTATION_DEPLOY_BLOCK = 47_000_000n
+// Current block ~88.4M, Mar 4 was ~20 days ago = ~576K blocks back.
+// Conservative start: block 87,500,000 (~Mar 1, 2026).
+export const BNB_IDENTITY_DEPLOY_BLOCK = 87_500_000n
+export const BNB_REPUTATION_DEPLOY_BLOCK = 87_500_000n
 
 // USDC on Base (x402 payments settle here)
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
