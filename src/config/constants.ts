@@ -38,10 +38,11 @@ export const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11
 
 // Indexer tuning — Alchemy free tier limits getLogs to 10 blocks per query
 export const BATCH_SIZE = 10n          // blocks per eth_getLogs call (Alchemy free limit)
+export const BATCH_SIZE_BASE = 2_000n  // blocks per getLogs on Base public RPC (10K limit, 2K for reliability)
 export const BATCH_DELAY_MS = 100      // ms between batches (Ethereum)
 export const BATCH_DELAY_BASE_MS = 100 // ms between batches (Base)
 export const BATCH_DELAY_ARB_MS = 100  // ms between batches (Arbitrum)
-export const BATCH_DELAY_BNB_MS = 200  // ms between batches (BNB Chain — public RPC, be polite)
+export const BATCH_DELAY_BNB_MS = 500  // ms between batches (BNB Chain — public RPC, rate limited at 200ms)
 export const RECEIPT_DELAY_MS = 50     // ms between individual receipt fetches
 
 // Alchemy CU costs per method

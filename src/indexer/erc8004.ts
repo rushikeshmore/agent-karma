@@ -14,7 +14,7 @@
  */
 
 import { parseAbiItem, type PublicClient } from 'viem'
-import { ethClient, baseClient, arbClient, bscClient } from '../config/chains.js'
+import { ethClient, basePublicClient, arbClient, bscClient } from '../config/chains.js'
 import {
   IDENTITY_REGISTRY,
   REPUTATION_REGISTRY,
@@ -27,6 +27,7 @@ import {
   BNB_IDENTITY_DEPLOY_BLOCK,
   BNB_REPUTATION_DEPLOY_BLOCK,
   BATCH_SIZE,
+  BATCH_SIZE_BASE,
   BATCH_DELAY_MS,
   BATCH_DELAY_BASE_MS,
   BATCH_DELAY_ARB_MS,
@@ -77,6 +78,7 @@ interface ChainConfig {
   chain: string
   stateId: string
   batchDelay: number
+  batchSize: bigint
   label: string
 }
 
@@ -92,7 +94,7 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
       break
     }
 
-    const batchEnd = current + BATCH_SIZE - 1n > toBlock ? toBlock : current + BATCH_SIZE - 1n
+    const batchEnd = current + cfg.batchSize - 1n > toBlock ? toBlock : current + cfg.batchSize - 1n
 
     trackCU('eth_getLogs')
     const logs = await withRetry(() => cfg.client.getLogs({
@@ -165,7 +167,7 @@ async function indexMints(fromBlock: bigint, toBlock: bigint, cfg: ChainConfig):
     }
 
     // Progress log every 100 batches
-    if (blocksScanned % (BATCH_SIZE * 100n) === 0n || logs.length > 0) {
+    if (blocksScanned % (cfg.batchSize * 100n) === 0n || logs.length > 0) {
       const pct = ((Number(blocksScanned) / Number(totalBlocks)) * 100).toFixed(1)
       console.log(
         `  [mints/${cfg.label}] ${pct}% | block ${current}–${batchEnd} | ${logs.length} found (total: ${totalFound}) | CU: ${getCUUsage().totalCUs}`
@@ -195,7 +197,7 @@ async function indexFeedback(fromBlock: bigint, toBlock: bigint, cfg: ChainConfi
       break
     }
 
-    const batchEnd = current + BATCH_SIZE - 1n > toBlock ? toBlock : current + BATCH_SIZE - 1n
+    const batchEnd = current + cfg.batchSize - 1n > toBlock ? toBlock : current + cfg.batchSize - 1n
 
     trackCU('eth_getLogs')
     const logs = await withRetry(() => cfg.client.getLogs({
@@ -265,7 +267,7 @@ async function indexFeedback(fromBlock: bigint, toBlock: bigint, cfg: ChainConfi
       }
     }
 
-    if (blocksScanned % (BATCH_SIZE * 100n) === 0n || logs.length > 0) {
+    if (blocksScanned % (cfg.batchSize * 100n) === 0n || logs.length > 0) {
       const pct = ((Number(blocksScanned) / Number(totalBlocks)) * 100).toFixed(1)
       console.log(
         `  [feedback/${cfg.label}] ${pct}% | block ${current}–${batchEnd} | ${logs.length} found (total: ${totalFound}) | CU: ${getCUUsage().totalCUs}`
@@ -291,14 +293,16 @@ const ETH_CONFIG: ChainConfig = {
   chain: 'ethereum',
   stateId: '', // set per-indexer below
   batchDelay: BATCH_DELAY_MS,
+  batchSize: BATCH_SIZE,
   label: 'eth',
 }
 
 const BASE_CONFIG: ChainConfig = {
-  client: baseClient as PublicClient,
+  client: basePublicClient as PublicClient, // public RPC: 10K block ranges, no Alchemy CU
   chain: 'base',
   stateId: '', // set per-indexer below
   batchDelay: BATCH_DELAY_BASE_MS,
+  batchSize: BATCH_SIZE_BASE,
   label: 'base',
 }
 
@@ -307,6 +311,7 @@ const ARB_CONFIG: ChainConfig = {
   chain: 'arbitrum',
   stateId: '', // set per-indexer below
   batchDelay: BATCH_DELAY_ARB_MS,
+  batchSize: BATCH_SIZE,
   label: 'arb',
 }
 
@@ -315,6 +320,7 @@ const BNB_CONFIG: ChainConfig = {
   chain: 'bnb',
   stateId: '', // set per-indexer below
   batchDelay: BATCH_DELAY_BNB_MS,
+  batchSize: BATCH_SIZE,
   label: 'bnb',
 }
 
@@ -343,11 +349,11 @@ async function indexChain(cfg: ChainConfig, identityDeployBlock: bigint, reputat
 
   const identityBlocks = identityTo >= identityFrom ? identityTo - identityFrom + 1n : 0n
   const reputationBlocks = reputationTo >= reputationFrom ? reputationTo - reputationFrom + 1n : 0n
-  const totalBatches = Number(identityBlocks + reputationBlocks) / Number(BATCH_SIZE)
+  const totalBatches = Number(identityBlocks + reputationBlocks) / Number(cfg.batchSize)
   const estimatedCUs = Math.ceil(totalBatches) * 75
 
-  console.log(`  Identity: blocks ${identityFrom}–${identityTo} (${identityBlocks} blocks, ~${Math.ceil(Number(identityBlocks) / Number(BATCH_SIZE))} batches)`)
-  console.log(`  Reputation: blocks ${reputationFrom}–${reputationTo} (${reputationBlocks} blocks, ~${Math.ceil(Number(reputationBlocks) / Number(BATCH_SIZE))} batches)`)
+  console.log(`  Identity: blocks ${identityFrom}–${identityTo} (${identityBlocks} blocks, ~${Math.ceil(Number(identityBlocks) / Number(cfg.batchSize))} batches)`)
+  console.log(`  Reputation: blocks ${reputationFrom}–${reputationTo} (${reputationBlocks} blocks, ~${Math.ceil(Number(reputationBlocks) / Number(cfg.batchSize))} batches)`)
   console.log(`  Estimated CU cost: ~${estimatedCUs.toLocaleString()} CUs`)
 
   console.log(`\n--- [${cfg.label}] Indexing mints ---`)
