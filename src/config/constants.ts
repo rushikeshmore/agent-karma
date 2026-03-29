@@ -42,7 +42,8 @@ export const BATCH_SIZE_BASE = 2_000n  // blocks per getLogs on Base public RPC 
 export const BATCH_DELAY_MS = 100      // ms between batches (Ethereum)
 export const BATCH_DELAY_BASE_MS = 100 // ms between batches (Base)
 export const BATCH_DELAY_ARB_MS = 100  // ms between batches (Arbitrum)
-export const BATCH_DELAY_BNB_MS = 500  // ms between batches (BNB Chain — public RPC, rate limited at 200ms)
+export const BATCH_SIZE_BNB = 10n      // blocks per getLogs on NodeReal public RPC (strict limit)
+export const BATCH_DELAY_BNB_MS = 1000 // ms between batches (BNB — NodeReal rate limits aggressively)
 export const RECEIPT_DELAY_MS = 50     // ms between individual receipt fetches
 
 // Alchemy CU costs per method

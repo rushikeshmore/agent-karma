@@ -24,7 +24,8 @@ export const arbClient = createPublicClient({
   transport: http(`https://arb-mainnet.g.alchemy.com/v2/${env.alchemyKey}`),
 })
 
-// BNB Chain — NodeReal public RPC (supports getLogs, no Alchemy CU cost, ~3s blocks)
+// BNB Chain — NodeReal public RPC (10-block getLogs max, rate limited)
+// TODO: Enable BNB on Alchemy dashboard for 2K-block batches: https://dashboard.alchemy.com/apps/xk5kkkd5581x0m5q/networks
 export const bscClient = createPublicClient({
   chain: bsc,
   transport: http('https://bsc-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3'),

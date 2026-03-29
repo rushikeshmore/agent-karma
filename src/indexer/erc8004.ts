@@ -31,6 +31,7 @@ import {
   BATCH_DELAY_MS,
   BATCH_DELAY_BASE_MS,
   BATCH_DELAY_ARB_MS,
+  BATCH_SIZE_BNB,
   BATCH_DELAY_BNB_MS,
 } from '../config/constants.js'
 import { trackCU, getCUUsage, shouldStop } from './cu-tracker.js'
@@ -48,18 +49,20 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 5): Promise<T> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn()
     } catch (err: any) {
       const status = err?.status ?? err?.cause?.status
-      const isRetryable = status === 429 || status === 502 || status === 503 ||
+      const details = err?.details ?? err?.cause?.details ?? ''
+      const isRateLimit = status === 429 || details.includes('limit exceeded') || details.includes('API usage limit')
+      const isRetryable = isRateLimit || status === 502 || status === 503 ||
         err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'UND_ERR_SOCKET' ||
         err.name === 'TimeoutError' || err.name === 'AbortError'
       if (isRetryable && attempt < maxRetries) {
-        const delay = 1000 * Math.pow(2, attempt - 1)
-        console.log(`  [${label}] Retryable error (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`)
+        const delay = isRateLimit ? 30_000 : 1000 * Math.pow(2, attempt - 1)
+        console.log(`  [${label}] ${isRateLimit ? 'Rate limited' : 'Retryable error'} (attempt ${attempt}/${maxRetries}), waiting ${delay / 1000}s...`)
         await sleep(delay)
       } else {
         throw err
@@ -320,7 +323,7 @@ const BNB_CONFIG: ChainConfig = {
   chain: 'bnb',
   stateId: '', // set per-indexer below
   batchDelay: BATCH_DELAY_BNB_MS,
-  batchSize: BATCH_SIZE,
+  batchSize: BATCH_SIZE_BNB,
   label: 'bnb',
 }
 
