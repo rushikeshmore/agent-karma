@@ -60,7 +60,7 @@ app.use('*', async (c, next) => {
 
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (path === '/' || path === '/api-keys' || path === '/openapi.json' || path === '/openai-functions.json') return next()
+  if (path === '/' || path === '/openapi.json' || path === '/openai-functions.json') return next()
 
   const sql = getSQL(c)
   const apiKey = c.req.header('x-api-key')
@@ -246,7 +246,7 @@ app.post('/feedback', async (c) => {
 app.get('/wallets', async (c) => {
   const sql = getSQL(c)
   const limit = Math.min(safeInt(c.req.query('limit'), 50), 100)
-  const offset = safeInt(c.req.query('offset'), 0)
+  const offset = Math.min(safeInt(c.req.query('offset'), 0), 100_000)
   const source = validateSource(c.req.query('source'))
   const sort = c.req.query('sort') === 'score' ? 'trust_score' : 'tx_count'
   const scoreMin = c.req.query('score_min') != null ? safeInt(c.req.query('score_min'), 0) : null
@@ -351,7 +351,11 @@ app.get('/wallet/:address', async (c) => {
   const address = validateAddress(c.req.param('address'))
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
 
-  const wallet = await sql`SELECT * FROM wallets WHERE address = ${address}`
+  const wallet = await sql`
+    SELECT address, source, chain, erc8004_id, tx_count, trust_score, score_breakdown,
+           scored_at, first_seen_at, last_seen_at, role, feedback_count
+    FROM wallets WHERE address = ${address}
+  `
   if (wallet.length === 0) return c.json({ error: 'Wallet not found' }, 404)
 
   const txCount = await sql`
@@ -365,10 +369,9 @@ app.get('/wallet/:address', async (c) => {
   `
 
   const w = wallet[0]
-  const { needs_rescore, id, first_seen_block, created_at, ...walletData } = w
   return c.json({
     wallet: {
-      ...walletData,
+      ...w,
       score_breakdown: parseJsonb(w.score_breakdown),
       tier: w.trust_score != null ? computeTier(w.trust_score) : null,
     },
@@ -456,7 +459,7 @@ app.get('/wallet/:address/transactions', async (c) => {
   const address = validateAddress(c.req.param('address'))
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
   const limit = Math.min(safeInt(c.req.query('limit'), 25), 100)
-  const offset = safeInt(c.req.query('offset'), 0)
+  const offset = Math.min(safeInt(c.req.query('offset'), 0), 100_000)
 
   const txs = await sql`
     SELECT tx_hash, block_number::text, chain, authorizer, payer, recipient, amount_usdc, is_x402, block_timestamp
@@ -475,7 +478,7 @@ app.get('/wallet/:address/feedback', async (c) => {
   const address = validateAddress(c.req.param('address'))
   if (!address) return c.json({ error: 'Invalid address format. Expected 0x + 40 hex characters.' }, 400)
   const limit = Math.min(safeInt(c.req.query('limit'), 25), 100)
-  const offset = safeInt(c.req.query('offset'), 0)
+  const offset = Math.min(safeInt(c.req.query('offset'), 0), 100_000)
 
   const fb = await sql`
     SELECT f.agent_id, f.client_address, f.feedback_index, f.value, f.value_decimals,
@@ -499,7 +502,7 @@ app.get('/stats', async (c) => {
     sql`SELECT COUNT(*)::int as count FROM transactions`,
     sql`SELECT COUNT(*)::int as count FROM feedback`,
     sql`SELECT pg_database_size(current_database()) as size`,
-    sql`SELECT * FROM indexer_state ORDER BY id`,
+    sql`SELECT id as chain, last_block, updated_at FROM indexer_state ORDER BY id`,
     sql`
       SELECT
         CASE
