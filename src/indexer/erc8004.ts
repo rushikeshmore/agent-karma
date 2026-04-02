@@ -393,8 +393,8 @@ async function main() {
     totalFeedback += result.feedback
   }
 
-  // Index Arbitrum
-  if (!chainArg || chainArg === 'arbitrum') {
+  // Index Arbitrum (skipped: 0 mints as of Apr 2026 — contract deployed but unused)
+  if (chainArg === 'arbitrum') {
     console.log('\n--- Arbitrum ---')
     const result = await indexChain(ARB_CONFIG, ARB_IDENTITY_DEPLOY_BLOCK, ARB_REPUTATION_DEPLOY_BLOCK)
     totalMints += result.mints
