@@ -436,7 +436,7 @@ async function mainWithRetry(maxRestarts = 5) {
       return // Clean exit
     } catch (err: any) {
       const isRetryable = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' ||
-        err.name === 'TimeoutError' || err.name === 'AbortError'
+        err.code === 'CONNECT_TIMEOUT' || err.name === 'TimeoutError' || err.name === 'AbortError'
       if (isRetryable && attempt < maxRestarts) {
         const delay = 5000 * attempt
         console.log(`\n[erc8004] Connection lost (${err.code}), restarting in ${delay / 1000}s... (attempt ${attempt}/${maxRestarts})`)
