@@ -25,6 +25,9 @@ npm test
 
 # Start local dev server
 npm run dev
+
+# Enable repo git hooks (one-time)
+git config core.hooksPath .githooks
 ```
 
 ## Project Structure
