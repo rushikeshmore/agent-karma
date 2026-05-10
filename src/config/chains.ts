@@ -14,9 +14,10 @@ export const baseClient = createPublicClient({
 
 // Base public RPC — supports 10K block getLogs ranges, no CU cost
 // Use for indexer catch-up to avoid burning Alchemy CU on empty blocks
+// mainnet.base.org has been flaky (503 "no backend healthy") — publicnode as fallback
 export const basePublicClient = createPublicClient({
   chain: base,
-  transport: http('https://mainnet.base.org'),
+  transport: http('https://base-rpc.publicnode.com'),
 })
 
 export const arbClient = createPublicClient({

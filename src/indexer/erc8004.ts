@@ -450,8 +450,34 @@ async function mainWithRetry(maxRestarts = 5) {
   }
 }
 
+// Catch uncaught socket-level errors (e.g. Neon TLS ECONNRESET) that fire outside the
+// promise chain and bypass mainWithRetry. Exit with code 42 so the shell wrapper retries.
+function isRetryableErr(e: any) {
+  const code = e?.code
+  const name = e?.name
+  return code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'ECONNREFUSED' ||
+    code === 'CONNECT_TIMEOUT' || code === 'EAI_AGAIN' || code === 'ENOTFOUND' ||
+    name === 'TimeoutError' || name === 'AbortError'
+}
+process.on('uncaughtException', (err) => {
+  if (isRetryableErr(err)) {
+    console.log(`[erc8004] Uncaught retryable error (${(err as any).code}), exiting 42 for shell retry`)
+    process.exit(42)
+  }
+  console.error('[erc8004] Uncaught fatal:', err)
+  process.exit(1)
+})
+process.on('unhandledRejection', (reason) => {
+  if (isRetryableErr(reason)) {
+    console.log(`[erc8004] Unhandled retryable rejection (${(reason as any).code}), exiting 42 for shell retry`)
+    process.exit(42)
+  }
+  console.error('[erc8004] Unhandled rejection:', reason)
+  process.exit(1)
+})
+
 mainWithRetry().catch(async (err) => {
   console.error('Indexer failed:', err)
   await sql.end()
-  process.exit(1)
+  process.exit(isRetryableErr(err) ? 42 : 1)
 })
