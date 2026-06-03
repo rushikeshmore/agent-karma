@@ -1,5 +1,11 @@
 # agentkarma
 
+> ## 🗄️ Deprecated - this package no longer works
+>
+> AgentKarma was archived in **June 2026**. The hosted API this SDK calls has been retired, so every method now fails at runtime. The package stays published for history only; do not build on it.
+>
+> The project's source and final data snapshot remain at **https://github.com/rushikeshmore/agent-karma**, where you can read the scoring engine or self-host your own indexer.
+
 Trust scores for AI agent wallets. One-line credit check before transacting.
 
 Zero dependencies. Works in Node.js, Deno, Bun, Cloudflare Workers, and browsers.

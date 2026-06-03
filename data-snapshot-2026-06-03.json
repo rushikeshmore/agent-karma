@@ -1,0 +1,744 @@
+{
+  "project": "AgentKarma",
+  "status": "archived",
+  "snapshotDate": "2026-06-03",
+  "note": "Final frozen snapshot. Indexing stopped; hosted API and database retired. Numbers do not update.",
+  "totals": {
+    "wallets": 30815,
+    "transactions": 290565,
+    "feedback": 162969
+  },
+  "distribution": [
+    {
+      "tier": "HIGH",
+      "count": 13,
+      "avg_score": 83
+    },
+    {
+      "tier": "MEDIUM",
+      "count": 2215,
+      "avg_score": 56
+    },
+    {
+      "tier": "LOW",
+      "count": 24515,
+      "avg_score": 24
+    },
+    {
+      "tier": "MINIMAL",
+      "count": 4072,
+      "avg_score": 19
+    }
+  ],
+  "indexedTo": {
+    "erc8004_identity": "25222507",
+    "erc8004_identity_arb": "300443929",
+    "erc8004_identity_base": "46755119",
+    "erc8004_identity_bnb": "87591439",
+    "erc8004_reputation": "25222507",
+    "erc8004_reputation_base": "46755119",
+    "x402_base": "42586157"
+  },
+  "topWallets": [
+    {
+      "address": "0xef4364fe4487353df46eb7c811d4fac78b856c7f",
+      "trust_score": 88,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 78901
+    },
+    {
+      "address": "0x325bdf6f7efab24a2210c48c1b64cab2eae1d430",
+      "trust_score": 85,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 59641
+    },
+    {
+      "address": "0x21dd37e3e4ea6ccc0a5c98a4944702ede6e7be10",
+      "trust_score": 85,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 2331
+    },
+    {
+      "address": "0xf114a1224e1a44ea65d7472d40dd53e8c45d5928",
+      "trust_score": 85,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 440
+    },
+    {
+      "address": "0xe9030014f5dae217d0a152f02a043567b16c1abf",
+      "trust_score": 84,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 50756
+    },
+    {
+      "address": "0xca1271e777c209e171826a681855351f4989cd0c",
+      "trust_score": 84,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 164
+    },
+    {
+      "address": "0xfc6087d5d246ec85dda45db2730490a4ff542b09",
+      "trust_score": 84,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 160
+    },
+    {
+      "address": "0x73fc659cd5494e69852be8d9d23fe05aab14b29b",
+      "trust_score": 82,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 16490
+    },
+    {
+      "address": "0x101cd32b9beee93845ead7bc604a5f1873330acf",
+      "trust_score": 82,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 2363
+    },
+    {
+      "address": "0xa6a8736f18f383f1cc2d938576933e5ea7df01a1",
+      "trust_score": 82,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 1675
+    },
+    {
+      "address": "0x636678e4be5598f345e6c262f4798d7f1bd3f1e2",
+      "trust_score": 82,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 1153
+    },
+    {
+      "address": "0x6a5e7d954f49712abf3f873f037ec845b7b8c666",
+      "trust_score": 81,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 60334
+    },
+    {
+      "address": "0x8e7769d440b3460b92159dd9c6d17302b036e2d6",
+      "trust_score": 81,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 1788
+    },
+    {
+      "address": "0x0f12e5192c0ad92106eda0c7ee6fa07ac3a4b439",
+      "trust_score": 78,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 305
+    },
+    {
+      "address": "0xf8ea44be938f98e67ef4e6a07de422c85fa48f9d",
+      "trust_score": 78,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 291
+    },
+    {
+      "address": "0x4f4beb658084d7bd7ea0b6f74dbf6e99f93d422d",
+      "trust_score": 78,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 287
+    },
+    {
+      "address": "0x35e6cb35647076539f8c4d14f51e03841bcd1f0e",
+      "trust_score": 78,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 104
+    },
+    {
+      "address": "0x07f067959297767c887dbfa3c72379c66e82a045",
+      "trust_score": 77,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 271
+    },
+    {
+      "address": "0xecb6175395806a3781ae7e5bae6d0abcb214ee4d",
+      "trust_score": 77,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 105
+    },
+    {
+      "address": "0x43a2a720cd0911690c248075f4a29a5e7716f758",
+      "trust_score": 76,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 7968
+    },
+    {
+      "address": "0xafffcead2e99d04e5641a2873eb7347828e1aad3",
+      "trust_score": 76,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 759
+    },
+    {
+      "address": "0xb4ad6bb516725ff69594e46c3a7daedf7c473186",
+      "trust_score": 76,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 699
+    },
+    {
+      "address": "0xf82971117baf73c42c04c6a0d619ba9d6aea87fa",
+      "trust_score": 76,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 13
+    },
+    {
+      "address": "0x2b38a4bb7ce552e82d5664224bacc1c3daf1ab7d",
+      "trust_score": 75,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 1459
+    },
+    {
+      "address": "0xb6e3aeb78c17f1debced6d7aebab33cba9744b1f",
+      "trust_score": 75,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 1104
+    },
+    {
+      "address": "0xb2f1c3beb9c4c4bb7fe8e55a9751603c2a3c0e54",
+      "trust_score": 75,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 92
+    },
+    {
+      "address": "0xa7c12c0adc0da583ba8363370a1772de304af354",
+      "trust_score": 75,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 58
+    },
+    {
+      "address": "0x7d2ceb7a0e0c39a3d0f7b5b491659fde4bb7bcfe",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 371
+    },
+    {
+      "address": "0x631e240fe781083a5571552ce82036d96b158696",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 254
+    },
+    {
+      "address": "0x191aee992898a3ab526ad2707fdc2cc2b46da820",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 149
+    },
+    {
+      "address": "0xf9702d558eaec22a655df33b1e3ac996fac2f1ea",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 91
+    },
+    {
+      "address": "0x06dff3c8380b5d1799874ada903fc3422882fd6f",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 80
+    },
+    {
+      "address": "0x93053f1e7a5efeda532fe69cbbe43cbec3a0f13f",
+      "trust_score": 74,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 70
+    },
+    {
+      "address": "0x29322ea7ecb34aa6164cb2ddeb9ce650902e4f60",
+      "trust_score": 73,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 205
+    },
+    {
+      "address": "0x6b173bf632a7ee9151e94e10585bdeccd47bdaaf",
+      "trust_score": 73,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 130
+    },
+    {
+      "address": "0xcfa26f13c6c18307033ece13bbb8f470da5b4dbe",
+      "trust_score": 73,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 65
+    },
+    {
+      "address": "0x7dd5be069f2d2ead75ec7c3423b116ff043c2629",
+      "trust_score": 72,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 231
+    },
+    {
+      "address": "0x88aee1537b8321f560355a59329c7ba36c47753b",
+      "trust_score": 72,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 153
+    },
+    {
+      "address": "0xdb5aa553feeb2c3e3d03e8360b36fb0f7e480671",
+      "trust_score": 72,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 52
+    },
+    {
+      "address": "0xf89009ceb2dee053453b87d240e7ac5104a703b3",
+      "trust_score": 72,
+      "source": "both",
+      "chain": "ethereum",
+      "tx_count": 12
+    },
+    {
+      "address": "0xacce7d23eb89d7f1930ac95fc044182175feca2d",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 817
+    },
+    {
+      "address": "0x94e9b636d0f3bdc08019b450f7f2f4ef5b4eb2ca",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 357
+    },
+    {
+      "address": "0x12a9a43b97985f160b1ca4f28b4bb8fe359aa21b",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 97
+    },
+    {
+      "address": "0xd8ba61a0b0974db0ec8e325c7628470526558e9b",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 63
+    },
+    {
+      "address": "0xba2304d1f48ac01cf01427fc9d9ae3d21e71b536",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 63
+    },
+    {
+      "address": "0xaa2116df891ef5f3e2dc3f9b1af1b23a07533d3a",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 19
+    },
+    {
+      "address": "0x9cf2cdd623e0b4bea7df660eb14ca1c46c24d487",
+      "trust_score": 71,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x6d6695bf127c63d12c1c379aa77594c464202a6d",
+      "trust_score": 71,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 13
+    },
+    {
+      "address": "0x924bf907dc3e1bc2f479eef04833fff068d9bd72",
+      "trust_score": 70,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 36
+    },
+    {
+      "address": "0x6abb751663e25b4cc4bed5b965f70681d04fccf8",
+      "trust_score": 70,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 21
+    },
+    {
+      "address": "0x2155fbc2a350a0897cd1807dd95007a8385e6d96",
+      "trust_score": 70,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x0e3df9510de65469c4518d7843919c0b8c7a7757",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 170
+    },
+    {
+      "address": "0x1b092b21bc07076e3adede7bac8216daea115e99",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 29
+    },
+    {
+      "address": "0x95f8982597f607cc8cd23ec117bdcf9b5331ba8e",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x01bb812ee93852ee4e94f361859a302688d97991",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x8a40424ab571ebe52d800c48c18f1eca3fc3f89f",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x89c746e461d123513f0e5d52da79d975afb0c5b1",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 16
+    },
+    {
+      "address": "0x53322cb171647187dfebf84ede104a291d4bd645",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 13
+    },
+    {
+      "address": "0xf15c64e04a2f2252d08effc98fa3d2b02ed29f44",
+      "trust_score": 69,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 10
+    },
+    {
+      "address": "0x5d4f109cabe6792ddf98c7dc9413042ce31c1785",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 55
+    },
+    {
+      "address": "0x0bb27b620e2ceb7fc5b6cc504bb80441d5c6003d",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 43
+    },
+    {
+      "address": "0xff44dc5567da627f8a1979a45db8e7ca0deeb0ad",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 40
+    },
+    {
+      "address": "0x8a178a850b85a4b30af902a2178a2443e99fea18",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 30
+    },
+    {
+      "address": "0x42fc07995ea5fd8d36d5762a7bbefaed88e39363",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 15
+    },
+    {
+      "address": "0x710010fd8b30455e7d0fc12f7307e1f4f61968f7",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 15
+    },
+    {
+      "address": "0x4c3b0b1cab290300bd5a36ad5f33a607acbd7ac3",
+      "trust_score": 68,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 14
+    },
+    {
+      "address": "0x9f4ad5189601fab77d150964defa4c25a48d288e",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 14
+    },
+    {
+      "address": "0x569d47cb8ce9b400c88833a0083183e852b22428",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 7
+    },
+    {
+      "address": "0x51d8fe5ee88dc73874ace9b3913e9d66a7c34e8d",
+      "trust_score": 68,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 7
+    },
+    {
+      "address": "0x6ca3b21d18e2b60291413c99dd6969c43d26c3d2",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 42
+    },
+    {
+      "address": "0x48adf6e37f9b31dc2aad0462c5862b5422c736b8",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 36
+    },
+    {
+      "address": "0x1aeaa0746332074ebbf751cf9aa7ae4813731ea4",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 33
+    },
+    {
+      "address": "0xe04fed8c766e56156dd0826b1eb1cfff181bdccd",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 33
+    },
+    {
+      "address": "0x0763bf8eb30caa8ee907c359221481e203d79687",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 19
+    },
+    {
+      "address": "0x216658b168aaf87c6fef59ae82aedfbf867294a7",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 16
+    },
+    {
+      "address": "0xe5f81cdeb6b20fa7869f5903563b714e078a5a93",
+      "trust_score": 67,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 13
+    },
+    {
+      "address": "0xaa91545e508bd0a6b6eb921da20661dc6ce43bb0",
+      "trust_score": 67,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 9
+    },
+    {
+      "address": "0x90ee1ebccfa2021711c595e1410e22401570b4ac",
+      "trust_score": 67,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x66d62da134b666f20423e5a4098b2f1c5bf07d05",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 7
+    },
+    {
+      "address": "0x622be8055e24e120e1014a27d1b245cc2337cc2c",
+      "trust_score": 67,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 7
+    },
+    {
+      "address": "0xa8a807414b1d671e6a36841d9fa1f12fad91d988",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 22
+    },
+    {
+      "address": "0xd73676649f8a7df25322e5cf0b118b98a33fa8d8",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 18
+    },
+    {
+      "address": "0x0aa016595f2200434ab6b7df0cb4ab2162f29105",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 16
+    },
+    {
+      "address": "0x7a1199ff982491636ee2d9b3d2ce98efe8340be2",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 16
+    },
+    {
+      "address": "0x2dba83da2fc1ce4f33190e800c4377ac73c58bb3",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 15
+    },
+    {
+      "address": "0xf8e4e774887a6c0f91b69ebdd6bd0d8e4cbdffe0",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 13
+    },
+    {
+      "address": "0x1c8fedf74bef21fadc22998b2bab14a2623e96e2",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 12
+    },
+    {
+      "address": "0x668945380f5e33d31d29ea0691d288c522a6f75e",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 12
+    },
+    {
+      "address": "0xb51ba83632dca03ea7413c1a5e7b84f5401213e9",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 12
+    },
+    {
+      "address": "0x05a93057424fb595147cb1246a60c11fe0e3e650",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 10
+    },
+    {
+      "address": "0x7229a8476173674c5d66a5161a123cac345c45e8",
+      "trust_score": 66,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 10
+    },
+    {
+      "address": "0x43f94b2b81fa25d4a352cdf013a33a192c57dad9",
+      "trust_score": 66,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 9
+    },
+    {
+      "address": "0xf576330f3f05eda6b2bee2294d3ec51d0981e02d",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 9
+    },
+    {
+      "address": "0x74a41c9603121bbd504ff2f1772b95cf26a20a76",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 9
+    },
+    {
+      "address": "0x59f13bc19a82e9e67703d865eb96a45692760cd5",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x3c02a7af93643d257f25229e13893930257350a0",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x9bb8c7331a84e42fe5015fcb8d742aeebbec05c8",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x2774af069bd18a5faaa7fe1160dd752dce26b66b",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x30de99fc313c68b735c8850795a5351d7a0d1afd",
+      "trust_score": 66,
+      "source": "both",
+      "chain": "base",
+      "tx_count": 8
+    },
+    {
+      "address": "0x15516673aa0e7b970ff6a31665f0cb9e4c0b5632",
+      "trust_score": 66,
+      "source": "x402",
+      "chain": "base",
+      "tx_count": 8
+    }
+  ]
+}

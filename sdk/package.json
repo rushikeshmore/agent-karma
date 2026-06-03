@@ -1,7 +1,7 @@
 {
   "name": "agentkarma",
-  "version": "0.4.0",
-  "description": "Trust scores for AI agent wallets — one-line credit check before transacting",
+  "version": "0.4.1",
+  "description": "[ARCHIVED June 2026, hosted API retired] Trust scores for AI agent wallets. One-line credit check before transacting.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -38,7 +38,7 @@
     "url": "git+https://github.com/rushikeshmore/agent-karma.git",
     "directory": "sdk"
   },
-  "homepage": "https://agentkarma.dev",
+  "homepage": "https://github.com/rushikeshmore/agent-karma",
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

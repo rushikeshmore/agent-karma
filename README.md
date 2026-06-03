@@ -1,14 +1,16 @@
 # AgentKarma
 
+> ## 🗄️ Archived - no longer maintained
+>
+> AgentKarma stopped indexing in **June 2026**. The hosted API and Postgres database have been retired and the npm package is deprecated. The live site is now a static snapshot on Vercel: **https://agentkarma-rushikesh-mores-projects-661cafb5.vercel.app** (the `agentkarma.dev` domain is being allowed to lapse). The source and the final data snapshot (`data/final-snapshot-2026-06-03.json`) stay here for reference.
+>
+> **Final snapshot (2026-06-03):** 30,815 wallets, 290,565 transactions, 162,969 feedback events. Indexed through Ethereum block 25,222,507 and Base block 46,755,119. Tier split: 13 HIGH / 2,215 MEDIUM / 24,515 LOW / 4,072 MINIMAL.
+
 [![npm version](https://img.shields.io/npm/v/agentkarma)](https://www.npmjs.com/package/agentkarma)
 [![npm downloads](https://img.shields.io/npm/dm/agentkarma)](https://www.npmjs.com/package/agentkarma)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**Credit bureau for AI agent wallets.** [agentkarma.dev](https://agentkarma.dev)
-
-> 14,600+ wallets indexed | 234,000+ transactions | 4 chains | 7 MCP tools
->
-> If AgentKarma is useful to you, consider giving it a star — it helps others discover it.
+**Credit bureau for AI agent wallets.** Static snapshot: [Vercel mirror](https://agentkarma-rushikesh-mores-projects-661cafb5.vercel.app)
 
 AI agents are transacting on their own now. They pay each other, buy services, settle invoices, all through crypto wallets. But there's no way to tell if the wallet on the other side is legit.
 
