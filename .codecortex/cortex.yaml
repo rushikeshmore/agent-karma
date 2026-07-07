@@ -1,6 +1,6 @@
 version: 1.0.0
 project: agent-karma
-root: /Users/rushikeshmore/Desktop/personal-desk/03-projects/agent-karma
+root: .
 generated: 2026-03-24T11:03:38.455Z
 lastUpdated: 2026-03-24T11:03:38.455Z
 languages:
